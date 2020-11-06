@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Program.cpp" />
+    <ClCompile Include="..\ext\glad\src\glad.c">
+      <Filter>ext</Filter>
+    </ClCompile>
+    <ClCompile Include="GLSL.cpp" />
+    <ClCompile Include="WindowManager.cpp" />
+    <ClCompile Include="MatrixStack.cpp" />
+    <ClCompile Include="Shape.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Program.h" />
+    <ClInclude Include="GLSL.h" />
+    <ClInclude Include="WindowManager.h" />
+    <ClInclude Include="MatrixStack.h" />
+    <ClInclude Include="Shape.h" />
+    <ClInclude Include="tiny_obj_loader.h" />
+    <ClInclude Include="stb_image.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="ext">
+      <UniqueIdentifier>{a1735e5b-c01d-45eb-b937-869f0ba27591}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{f89a65ed-e2a3-436e-a6f9-c4b2604650e0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\resources\shader_fragment.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\resources\height_frag.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\resources\height_vertex.glsl">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="..\resources\shader_vertex.glsl">
+      <Filter>shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>
