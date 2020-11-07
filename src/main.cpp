@@ -1,7 +1,6 @@
-/*
-CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
-*/
-
+#include <fstream>
+#include <sstream>
+#include <stdlib.h>
 #include <iostream>
 #include <glad/glad.h>
 #define STB_IMAGE_IMPLEMENTATION
@@ -14,6 +13,7 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include "MatrixStack.h"
 
 #include "geomObj.h"
+#include "camera.h"
 
 #include "WindowManager.h"
 #include "Shape.h"
@@ -22,12 +22,12 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include <glm/gtc/matrix_transform.hpp>
 using namespace std;
 using namespace glm;
-shared_ptr<Shape> shape;
+// shared_ptr<Shape> shape;
 
-#define WIDTH 10
-#define HEIGHT 10
+#define WIDTH 640
+#define HEIGHT 480
 
-#define NUM_BALLS 100
+#define NUM_BALLS 10
 
 class ssbo_data
 {
@@ -37,7 +37,10 @@ public:
 	vec3 v;
 	vec3 horizontal;
 	vec3 vertical;
-	vec3 llc;
+	vec3 llc_minus_campos;
+	vec3 camera_location;
+	vec3 background; // represents the background color
+	// need a way to represent a scene
 	vec3 pixels[WIDTH][HEIGHT];
 };
 
@@ -50,12 +53,13 @@ double get_last_elapsed_time()
 	lasttime = actualtime;
 	return difference;
 }
-class camera
+
+class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
 	int w, a, s, d;
-	camera()
+	fake_camera()
 	{
 		w = a = s = d = 0;
 		pos = rot = glm::vec3(0, 0, 0);
@@ -87,45 +91,98 @@ public:
 };
 
 // #define initpos vec3(0,0,-20);
-camera mycam;
-#define ACC vec3(0,-9.81,0)
-class ball
-{
-public:
-	vec3 pos, v;
-	float m;
-	float r;
-	ball() 
-	{
-		pos = vec3(0);
-		v = vec3(0);
-		m = 1;
-		r = 0.3;
-	}
-	void update(float delta_t)
-	{
-		v = v + ACC*0.001f;
-		// if (v.y < 0 && pos.y - r < -4.99 && pos.y - r > -5.01)
-		// 	pos = pos;
-		// else
-			pos = pos + v * delta_t;
-		// pos = initpos;
-	}
-};
-
+fake_camera mycam;
+ofstream outFile;
 
 float randf()
 {
 	return (float)(rand() / (float)RAND_MAX);
 }
 
+inline vec3 operator*(const vec3 &v, int Sc) {
+	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
+}
+
+inline vec3 operator*(const vec3 &v, double Sc) {
+	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
+}
+
+inline vec3 operator*(double Sc, const vec3 &v) {
+	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
+}
+
+inline vec3 operator*(int Sc, const vec3 &v) {
+	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
+}
+
+vec3 pow_vec(vec3 vec, vec3 pows)
+{
+	return vec3(pow(vec.x, pows.x), pow(vec.y, pows.y), pow(vec.z, pows.z));
+}
+
+vec3 clamp(vec3 v, float min, float max)
+{
+	return vec3(clamp(v.x, min, max), clamp(v.y, min, max), clamp(v.z, min, max));
+}
+
+void writePixel(ostream& out, vec3 color)
+{
+	// float gamma = 2.2; // for gamma correction TODO apply in shader instead
+	// color = pow_vec(color, vec3(1/gamma));
+	// color = clamp(color, 0.0, 1.0);
+	out << int(color.x * 255) << "\t" << int(color.y * 255) << "\t" << int(color.z * 255) << " \n";
+}
+
+// writes the pixels to a ppm file
+void writeOut(ostream& out, vec3 pixels[WIDTH][HEIGHT]) 
+{
+	out << "P3" << "\n";
+	out << WIDTH << "\t" << HEIGHT << "\n";
+	out << "255" << "\n";
+	for (int y = 0; y < HEIGHT; y ++)
+		for (int x = 0; x < WIDTH; x ++)
+			writePixel(out, pixels[x][y]);
+}
+
+class scene
+{
+public:
+	scene(vector<shape> shapes, vector<light_source> lights) : 
+		shapes(shapes), lights(lights) {}
+	// scene(vector<shape> shapes, vector<light_source> lights, camera cam) : 
+	// 	shapes(shapes), lights(lights), cam(cam) {}
+
+public:
+	vector<shape> shapes;
+	vector<light_source> lights;
+	// camera cam;
+};
+
 class Application : public EventCallbacks
 {
 
 public:
 
-	ball plutos[NUM_BALLS];
-	// ball pluto;
+	scene myscene = init_scene();
+
+	// copies of the SSBO data since these values will change each frame
+	vec3 w;
+	vec3 u;
+	vec3 v;
+	vec3 horizontal;
+	vec3 vertical;
+	vec3 llc_minus_campos;
+	vec3 camera_location;
+	vec3 pixels[WIDTH][HEIGHT];
+	// end
+
+	// build ray trace camera
+	vec3 location = vec3(0,0,14);
+	vec3 up = vec3(0,1,0);
+	vec3 right = vec3(1.33333,0,0);
+	vec3 look_at = vec3(0,0,0);
+	camera rt_camera = camera(location, up ,right, look_at);
+	// end
 
 	WindowManager * windowManager = nullptr;
 
@@ -145,6 +202,25 @@ public:
 	//texture data
 	GLuint Texture;
 	GLuint Texture2,HeightTex;
+
+	scene init_scene()
+	{
+		// sphere
+		vec3 center = vec3(0,0,0);
+		float radius = 2;
+		pigment color = pigment(vec3(0.8,0.2,0.5));
+		sphere mysphere = sphere(center,radius,color);
+		
+		// shapes vector
+		vector<shape> myshapes = vector<shape>();
+		myshapes.push_back(mysphere);
+
+		// light sources
+		vector<light_source> lights = vector<light_source>();
+
+		// make scene
+		return scene(myshapes,lights);
+	}
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -210,262 +286,170 @@ public:
 #define MESHSIZE 4
 	void init_mesh()
 	{
-		//generate the VAO
-		glGenVertexArrays(1, &VertexArrayID);
-		glBindVertexArray(VertexArrayID);
+		// //generate the VAO
+		// glGenVertexArrays(1, &VertexArrayID);
+		// glBindVertexArray(VertexArrayID);
 
-		//generate vertex buffer to hand off to OGL
-		glGenBuffers(1, &MeshPosID);
-		glBindBuffer(GL_ARRAY_BUFFER, MeshPosID);
-		vec3 vertices[MESHSIZE];
+		// //generate vertex buffer to hand off to OGL
+		// glGenBuffers(1, &MeshPosID);
+		// glBindBuffer(GL_ARRAY_BUFFER, MeshPosID);
+		// vec3 vertices[MESHSIZE];
 		
-		vertices[0] = vec3(1.0, 0.0, 0.0);
-		vertices[1] = vec3(0.0, 0.0, 0.0);
-		vertices[2] = vec3(0.0, 0.0, 1.0);
-		vertices[3] = vec3(1.0, 0.0, 1.0);
+		// vertices[0] = vec3(1.0, 0.0, 0.0);
+		// vertices[1] = vec3(0.0, 0.0, 0.0);
+		// vertices[2] = vec3(0.0, 0.0, 1.0);
+		// vertices[3] = vec3(1.0, 0.0, 1.0);
 		
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) *MESHSIZE, vertices, GL_DYNAMIC_DRAW);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-		//tex coords
-		float t = 1. / 100;
-		vec2 tex[MESHSIZE];
-		tex[0] = vec2(1.0, 0.0);
-		tex[1] = vec2(0,  0.0);
-		tex[2] = vec2(0,  1.0);
-		tex[3] = vec2(1.0, 1.0);
+		// glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) *MESHSIZE, vertices, GL_DYNAMIC_DRAW);
+		// glEnableVertexAttribArray(0);
+		// glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		// //tex coords
+		// float t = 1. / 100;
+		// vec2 tex[MESHSIZE];
+		// tex[0] = vec2(1.0, 0.0);
+		// tex[1] = vec2(0,  0.0);
+		// tex[2] = vec2(0,  1.0);
+		// tex[3] = vec2(1.0, 1.0);
 
-		glGenBuffers(1, &MeshTexID);
-		//set the current state to focus on our vertex buffer
-		glBindBuffer(GL_ARRAY_BUFFER, MeshTexID);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * MESHSIZE, tex, GL_STATIC_DRAW);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		// glGenBuffers(1, &MeshTexID);
+		// //set the current state to focus on our vertex buffer
+		// glBindBuffer(GL_ARRAY_BUFFER, MeshTexID);
+		// glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * MESHSIZE, tex, GL_STATIC_DRAW);
+		// glEnableVertexAttribArray(1);
+		// glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-		glGenBuffers(1, &IndexBufferIDBox);
-		//set the current state to focus on our vertex buffer
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
-		GLushort elements[6];
-		int ind = 0;
+		// glGenBuffers(1, &IndexBufferIDBox);
+		// //set the current state to focus on our vertex buffer
+		// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
+		// GLushort elements[6];
+		// int ind = 0;
 		
-		elements[0] = 0;
-		elements[1] = 1;
-		elements[2] = 2;
-		elements[3] = 0;
-		elements[4] = 2;
-		elements[5] = 3;
+		// elements[0] = 0;
+		// elements[1] = 1;
+		// elements[2] = 2;
+		// elements[3] = 0;
+		// elements[4] = 2;
+		// elements[5] = 3;
 				
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * 6, elements, GL_STATIC_DRAW);
-		glBindVertexArray(0);
+		// glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * 6, elements, GL_STATIC_DRAW);
+		// glBindVertexArray(0);
 	}
 	/*Note that any gl calls must always happen after a GL state is initialized */
 	void initGeom()
 	{
+		// need to build the rectangle that we render for ray tracing
+
+
 		//initialize the net mesh
 		init_mesh();
-
-		string resourceDirectory = "../resources" ;
-		// Initialize mesh.
-		shape = make_shared<Shape>();
-		//shape->loadMesh(resourceDirectory + "/t800.obj");
-		shape->loadMesh(resourceDirectory + "/sphere.obj");
-		shape->resize();
-		shape->init();
-
-		int width, height, channels;
-		char filepath[1000];
-
-		//texture 1
-		string str = resourceDirectory + "/grid.jpg";
-		strcpy(filepath, str.c_str());
-		unsigned char* data = stbi_load(filepath, &width, &height, &channels, 4);
-		glGenTextures(1, &Texture);
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, Texture);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-		//texture 2
-		str = resourceDirectory + "/sky.jpg";
-		strcpy(filepath, str.c_str());
-		data = stbi_load(filepath, &width, &height, &channels, 4);
-		glGenTextures(1, &Texture2);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, Texture2);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-
-		//texture 3
-		str = resourceDirectory + "/pluto.jpg";
-		strcpy(filepath, str.c_str());
-		data = stbi_load(filepath, &width, &height, &channels, 4);
-		glGenTextures(1, &HeightTex);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, HeightTex);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-
-
-		//[TWOTEXTURES]
-		//set the 2 textures to the correct samplers in the fragment shader:
-		GLuint Tex1Location = glGetUniformLocation(prog->pid, "tex");//tex, tex2... sampler in the fragment shader
-		GLuint Tex2Location = glGetUniformLocation(prog->pid, "tex2");
-		// Then bind the uniform samplers to texture units:
-		glUseProgram(prog->pid);
-		glUniform1i(Tex1Location, 0);
-		glUniform1i(Tex2Location, 1);
-
-		Tex1Location = glGetUniformLocation(heightshader->pid, "tex");//tex, tex2... sampler in the fragment shader
-		Tex2Location = glGetUniformLocation(heightshader->pid, "tex2");
-		// Then bind the uniform samplers to texture units:
-		glUseProgram(heightshader->pid);
-		glUniform1i(Tex1Location, 0);
-		glUniform1i(Tex2Location, 1);
-
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		// make the positions not randomized
-
-		vector<vec3> positions;
-
-		for (int z = -16; z >= -24; z --)
-			for (int y = 4; y >= -4; y --)
-				for (int x = 4; x >= -4; x --)
-					positions.push_back(vec3(x,y,z));
-
-		if (positions.size() < NUM_BALLS)
-		{
-			cout << "very very bad" << endl;
-		}
-
-		for (int i = 0; i < NUM_BALLS; i ++)
-		{
-			plutos[i].pos = positions[i];
-			// plutos[i].pos = vec3(6 * (randf() - 0.5),6 * (randf() - 0.5),-20 + 6 * (randf() - 0.5));
-			plutos[i].v = vec3(6 * (randf() - 0.5), 6 * (randf() - 0.5), 6 * (randf() - 0.5));
-			// plutos[i].v = vec3(-7, 6 * (randf() - 0.5), 6);
-		}
 	}
 
-	// void computeInitGeom()
-	// {
-	// 	std::random_device rd;     // only used once to initialise (seed) engine
-	// 	std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
-	// 	std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
-	
-	// 	//make an SSBO
-	// 	for (int i = 0; i < NUM_BALLS; i++)
-	// 	{
-	// 		// ssbo_CPUMEM.dataA[i] = vec4(0.0,0.0,0.0,0.0);
-	// 		// ssbo_CPUMEM.dataB[i] = vec4(0.0,0.0,0.0,0.0);
+	void computeInitGeom()
+	{
+		std::random_device rd;     // only used once to initialise (seed) engine
+		std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
 
-	// 		ssbo_CPUMEM.dataA[i] = vec4(plutos[i].pos.x, plutos[i].pos.y, plutos[i].pos.z, plutos[i].r);
-	// 		ssbo_CPUMEM.dataB[i] = vec4(plutos[i].v.x, plutos[i].v.y, plutos[i].v.z, plutos[i].m);
-	// 		ssbo_CPUMEM.dataC[i] = vec4(plutos[i].v.x, plutos[i].v.y, plutos[i].v.z, plutos[i].m);
-	// 		// cout << ssbo_CPUMEM.dataA[i].x << endl;
-	// 	}
+		ssbo_CPUMEM.w = ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec3();
+		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec3();
+		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec3();
+		ssbo_CPUMEM.background = vec3();
+		for (int i = 0; i < WIDTH; i ++)
+		{
+			for (int j = 0; j < HEIGHT; j ++)
+			{
+				ssbo_CPUMEM.pixels[i][j] = vec3();
+			}
+		}
 
-
-	// 	glGenBuffers(1, &ssbo_GPU_id);
-	// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-	// 	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
-	// 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-	// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
-	// }
+		glGenBuffers(1, &ssbo_GPU_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
+	}
 
 	// //General OGL initialization - set OGL state here
-	// void computeInit()
-	// {
-	// 	GLSL::checkVersion();
-	// 	//load the compute shader
-	// 	std::string ShaderString = readFileAsString("../resources/compute.glsl");
-	// 	const char *shader = ShaderString.c_str();
-	// 	GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
-	// 	glShaderSource(computeShader, 1, &shader, nullptr);
+	void computeInit()
+	{
+		GLSL::checkVersion();
+		//load the compute shader
+		std::string ShaderString = readFileAsString("../resources/compute.glsl");
+		const char *shader = ShaderString.c_str();
+		GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(computeShader, 1, &shader, nullptr);
 
-	// 	GLint rc;
-	// 	CHECKED_GL_CALL(glCompileShader(computeShader));
-	// 	CHECKED_GL_CALL(glGetShaderiv(computeShader, GL_COMPILE_STATUS, &rc));
-	// 	if (!rc)	//error compiling the shader file
-	// 	{
-	// 		GLSL::printShaderInfoLog(computeShader);
-	// 		std::cout << "Error compiling compute shader " << std::endl;
-	// 		exit(1);
-	// 	}
+		GLint rc;
+		CHECKED_GL_CALL(glCompileShader(computeShader));
+		CHECKED_GL_CALL(glGetShaderiv(computeShader, GL_COMPILE_STATUS, &rc));
+		if (!rc)	//error compiling the shader file
+		{
+			GLSL::printShaderInfoLog(computeShader);
+			std::cout << "Error compiling compute shader " << std::endl;
+			exit(1);
+		}
 
-	// 	computeProgram = glCreateProgram();
-	// 	glAttachShader(computeProgram, computeShader);
-	// 	glLinkProgram(computeProgram);
-	// 	glUseProgram(computeProgram);
+		computeProgram = glCreateProgram();
+		glAttachShader(computeProgram, computeShader);
+		glLinkProgram(computeProgram);
+		glUseProgram(computeProgram);
 		
-	// 	GLuint block_index;
-	// 	block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-	// 	GLuint ssbo_binding_point_index = 2;
-	// 	glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+		GLuint block_index;
+		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 2;
+		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+	}
 
-	// }
-	// void compute()
-	// {
-	// 	//make an SSBO
-	// 	for (int i = 0; i < NUM_BALLS; i++)
-	// 	{
-	// 		ssbo_CPUMEM.dataA[i] = vec4(plutos[i].pos.x, plutos[i].pos.y, plutos[i].pos.z, plutos[i].r);
-	// 		ssbo_CPUMEM.dataB[i] = vec4(plutos[i].v.x, plutos[i].v.y, plutos[i].v.z, plutos[i].m);
-	// 		ssbo_CPUMEM.dataC[i] = vec4(plutos[i].v.x, plutos[i].v.y, plutos[i].v.z, plutos[i].m);
-	// 		// cout << ssbo_CPUMEM.dataA[i].x << ", " << ssbo_CPUMEM.dataA[i].y << ", " << ssbo_CPUMEM.dataA[i].z << endl;
-	// 		// cout << ssbo_CPUMEM.dataA[i].x << endl;
-	// 	}
+	void compute()
+	{
+		// TODO use ssbo versions of data so no need to copy
+		// copy updated values over... in the future maybe just use the ssbo versions everywhere
+		ssbo_CPUMEM.w = w;
+		ssbo_CPUMEM.u = u;
+		ssbo_CPUMEM.v = v;
+		ssbo_CPUMEM.horizontal = horizontal;
+		ssbo_CPUMEM.vertical = vertical;
+		ssbo_CPUMEM.llc_minus_campos = llc_minus_campos;
+		ssbo_CPUMEM.camera_location = camera_location;
 
-	// 	GLuint block_index = 0;
-	// 	block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-	// 	GLuint ssbo_binding_point_index = 0;
-	// 	glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
-	// 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-	// 	glUseProgram(computeProgram);
+		GLuint block_index = 0;
+		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glUseProgram(computeProgram);
 
-	// 	// glUniform1ui(1, b);
+		// glUniform1ui(1, b);
 
-	// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-	// 	GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-	// 	int siz = sizeof(ssbo_data);
-	// 	memcpy(p, &ssbo_CPUMEM, siz);
-	// 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		int siz = sizeof(ssbo_data);
+		memcpy(p, &ssbo_CPUMEM, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);				
 
-	// 	// what is going on with the memcpys? why is it that i have to use the different sizes otherwise it breaks?
-				
+		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-	// 	glDispatchCompute((GLuint)1, (GLuint)1, 1);				//start compute shader
-	// 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-	// 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 		
-	// 	//copy data back to CPU MEM
+		//copy data back to CPU MEM
 
-	// 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-	// 	p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-	// 	siz = sizeof(ssbo_data);
-	// 	memcpy(&ssbo_CPUMEM,p, siz);
-	// 	glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		siz = sizeof(ssbo_data);
+		memcpy(&ssbo_CPUMEM,p, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-	// 	for (int i = 0; i < NUM_BALLS; i++)
-	// 	{
-	// 		plutos[i].v = vec3(ssbo_CPUMEM.dataC[i].x, ssbo_CPUMEM.dataC[i].y, ssbo_CPUMEM.dataC[i].z);
-	// 	}
-	// }
+		// TODO use memcpy instead of loop
+		for (int j = 0; j < HEIGHT; j ++)
+		{
+			for (int i = 0; i < WIDTH; i ++)
+			{
+				pixels[i][j] = ssbo_CPUMEM.pixels[i][j];
+			}
+		}
+	}
 
 	//General OGL initialization - set OGL state here
 	void init(const std::string& resourceDirectory)
@@ -510,110 +494,120 @@ public:
 		heightshader->addAttribute("vertTex");
 	}
 
-	void update(float dt)
-	{
-		for (int i = 0; i < NUM_BALLS; i ++)
-		{
-			plutos[i].update(dt);
-		}
-	}
+	// void update(float dt)
+	// {
+	// }
 
-	/****DRAW
-	This is the most important function in your program - this is where you
-	will actually issue the commands to draw any geometry you have set up to
-	draw
-	********/
 	void render()
 	{
-		// compute();
-		double frametime = get_last_elapsed_time();
-		update(frametime);
+		w = normalize(rt_camera.location - rt_camera.look_at);
+		u = normalize(cross(rt_camera.up, w));
+		v = normalize(cross(w, u));
 
-		// Get current frame buffer size.
-		int width, height;
-		glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-		float aspect = width/(float)height;
-		glViewport(0, 0, width, height);
+		horizontal = length(rt_camera.right) * u;
+		vertical = length(rt_camera.up) * v * -1; // hehe the -1 is back
 
-		// Clear framebuffer.
-		glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// llc = rt_camera.location - 0.5 * (horizontal + vertical) - w;
 
-		// Create the matrix stacks - please leave these alone for now
+		llc_minus_campos = -0.5 * (horizontal + vertical) - w;
+
+		// camera_location doesn't change just yet
+
+		compute();
+
+		if (outFile)
+			writeOut(outFile, pixels);
+		else 
+			cout << "error writing file" << endl;
+
+		// double frametime = get_last_elapsed_time();
+		// update(frametime);
+
+		// // Get current frame buffer size.
+		// int width, height;
+		// glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
+		// float aspect = width/(float)height;
+		// glViewport(0, 0, width, height);
+
+		// // Clear framebuffer.
+		// glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
+		// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// // Create the matrix stacks - please leave these alone for now
 		
-		glm::mat4 V, M, P; //View, Model and Perspective matrix
-		mat4 TransZ, S, RotateY, RotateX, TransY;
-		V = glm::mat4(1);
-		M = glm::mat4(1);
-		// Apply orthographic projection....
-		P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);		
-		if (width < height)
-			{
-			P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect,  1.0f / aspect, -2.0f, 100.0f);
-			}
-		// ...but we overwrite it (optional) with a perspective projection.
-		P = glm::perspective((float)(3.14159 / 4.), (float)((float)width/ (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
+		// glm::mat4 V, M, P; //View, Model and Perspective matrix
+		// mat4 TransZ, S, RotateY, RotateX, TransY;
+		// V = glm::mat4(1);
+		// M = glm::mat4(1);
+		// // Apply orthographic projection....
+		// P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);		
+		// if (width < height)
+		// 	{
+		// 	P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect,  1.0f / aspect, -2.0f, 100.0f);
+		// 	}
+		// // ...but we overwrite it (optional) with a perspective projection.
+		// P = glm::perspective((float)(3.14159 / 4.), (float)((float)width/ (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
 
-		//animation with the model matrix:
-		static float w = 0.0;
-		w += 1.0 * frametime;//rotation angle
-		float trans = 0;// sin(t) * 2;
-		RotateY = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
-		float angle = -3.1415926/2.0;
-		RotateX = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(1.0f, 0.0f, 0.0f));
+		// //animation with the model matrix:
+		// static float w = 0.0;
+		// w += 1.0 * frametime;//rotation angle
+		// float trans = 0;// sin(t) * 2;
+		// RotateY = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
+		// float angle = -3.1415926/2.0;
+		// RotateX = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(1.0f, 0.0f, 0.0f));
 
-		// Draw the box using GLSL.
-		prog->bind();
+		// // Draw the box using GLSL.
+		// prog->bind();
 
-		V = mycam.process(frametime);
-		//send the matrices to the shaders
+		// V = mycam.process(frametime);
+		// //send the matrices to the shaders
 
-		glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		glUniformMatrix4fv(prog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		glUniform3fv(prog->getUniform("campos"), 1, &mycam.pos[0]);
+		// glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		// glUniformMatrix4fv(prog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		// glUniform3fv(prog->getUniform("campos"), 1, &mycam.pos[0]);
 
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, HeightTex);
+		// glActiveTexture(GL_TEXTURE0);
+		// glBindTexture(GL_TEXTURE_2D, HeightTex);
 
-		for (int i = 0; i < NUM_BALLS; i ++)
-		{
-			TransZ = glm::translate(glm::mat4(1.0f), plutos[i].pos);
-			S = glm::scale(glm::mat4(1.0f), glm::vec3(plutos[i].r));
-			M =  TransZ * RotateY * RotateX * S;
-			glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-			shape->draw(prog,0);
-		}
+		// for (int i = 0; i < NUM_BALLS; i ++)
+		// {
+		// 	TransZ = glm::translate(glm::mat4(1.0f), plutos[i].pos);
+		// 	S = glm::scale(glm::mat4(1.0f), glm::vec3(plutos[i].r));
+		// 	M =  TransZ * RotateY * RotateX * S;
+		// 	glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		// 	shape->draw(prog,0);
+		// }
 
-		heightshader->bind();
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		S = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
-		TransY = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -5.0f, -25));
-		M = TransY * S;
-		glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glUniformMatrix4fv(heightshader->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		glUniformMatrix4fv(heightshader->getUniform("V"), 1, GL_FALSE, &V[0][0]);
+		// heightshader->bind();
+		// //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		// S = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
+		// TransY = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -5.0f, -25));
+		// M = TransY * S;
+		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		// glUniformMatrix4fv(heightshader->getUniform("P"), 1, GL_FALSE, &P[0][0]);
+		// glUniformMatrix4fv(heightshader->getUniform("V"), 1, GL_FALSE, &V[0][0]);
 		
-		glBindVertexArray(VertexArrayID);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, Texture);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
+		// glBindVertexArray(VertexArrayID);
+		// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
+		// glActiveTexture(GL_TEXTURE1);
+		// glBindTexture(GL_TEXTURE_2D, Texture);
+		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
 
-		M = TransY * S * RotateX;
-		glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
+		// M = TransY * S * RotateX;
+		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
 
-		RotateY = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		M = TransY * S * RotateY*RotateX;
-		glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
+		// RotateY = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
+		// M = TransY * S * RotateY*RotateX;
+		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
 
-		RotateY = glm::rotate(glm::mat4(1.0f), -angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		TransY = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, -5.0f, -15));
-		M = TransY * S * RotateY * RotateX;
-		glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
-		heightshader->unbind();
+		// RotateY = glm::rotate(glm::mat4(1.0f), -angle, glm::vec3(0.0f, 1.0f, 0.0f));
+		// TransY = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, -5.0f, -15));
+		// M = TransY * S * RotateY * RotateX;
+		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
+		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
+		// heightshader->unbind();
 
 	}
 
@@ -621,6 +615,7 @@ public:
 //******************************************************************************************
 int main(int argc, char **argv)
 {
+	outFile.open("../out.ppm");
 	///////////////////////////////////////////////////////////
 
 	std::string resourceDir = "../resources"; // Where the resources are loaded from
@@ -649,44 +644,39 @@ int main(int argc, char **argv)
 	printf("max global (total) work group size x:%i y:%i z:%i\n",
 		work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
 
-	// computeapplication->init();
-	// computeapplication->initGeom();
-
 	//////////////////////////////////////////////////////////////////////
 
 	/* your main will always include a similar set up to establish your window
 		and GL context, etc. */
-	WindowManager * windowManager = new WindowManager();
-	windowManager->init(1920, 1080);
-	windowManager->setEventCallbacks(application);
-	application->windowManager = windowManager;
+	// WindowManager * windowManager = new WindowManager();
+	// windowManager->init(1920, 1080);
+	// windowManager->setEventCallbacks(application);
+	// application->windowManager = windowManager;
 
 	/* This is the code that will likely change program to program as you
 		may need to initialize or set up different data and state */
 	// Initialize scene.
 	application->init(resourceDir);
 	application->initGeom();
-	// application->computeInit();
-	// application->computeInitGeom();
-
-	
-	// application->computeInitGeom();
+	application->computeInit();
+	application->computeInitGeom();
 
 	// Loop until the user closes the window.
-	while(! glfwWindowShouldClose(windowManager->getHandle()))
-	{
+	// while(! glfwWindowShouldClose(windowManager->getHandle()))
+	// {
 		// application->compute();
 
 		// Render scene.
 		application->render();
 
-		// Swap front and back buffers.
-		glfwSwapBuffers(windowManager->getHandle());
-		// Poll for and process events.
-		glfwPollEvents();
-	}
+	// 	// Swap front and back buffers.
+	// 	glfwSwapBuffers(windowManager->getHandle());
+	// 	// Poll for and process events.
+	// 	glfwPollEvents();
+	// }
 
 	// Quit program.
-	windowManager->shutdown();
+	// windowManager->shutdown();
+	outFile.close();
 	return 0;
 }
