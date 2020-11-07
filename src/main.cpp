@@ -32,16 +32,16 @@ using namespace glm;
 class ssbo_data
 {
 public:
-	vec3 w;
-	vec3 u;
-	vec3 v;
-	vec3 horizontal;
-	vec3 vertical;
-	vec3 llc_minus_campos;
-	vec3 camera_location;
-	vec3 background; // represents the background color
+	vec4 w;
+	vec4 u;
+	vec4 v;
+	vec4 horizontal;
+	vec4 vertical;
+	vec4 llc_minus_campos;
+	vec4 camera_location;
+	vec4 background; // represents the background color
 	// need a way to represent a scene
-	vec3 pixels[WIDTH][HEIGHT];
+	vec4 pixels[WIDTH][HEIGHT];
 };
 
 
@@ -99,6 +99,16 @@ float randf()
 	return (float)(rand() / (float)RAND_MAX);
 }
 
+inline std::ostream& operator<<(std::ostream &out, const vec3 &v)
+{ 
+	return out << v.x << ", " << v.y << ", " << v.z;
+}
+
+inline std::ostream& operator<<(std::ostream &out, const vec4 &v)
+{ 
+	return out << v.x << ", " << v.y << ", " << v.z << ", " << v.w;
+}
+
 inline vec3 operator*(const vec3 &v, int Sc) {
 	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
 }
@@ -115,26 +125,27 @@ inline vec3 operator*(int Sc, const vec3 &v) {
 	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
 }
 
-vec3 pow_vec(vec3 vec, vec3 pows)
+vec4 pow_vec(vec4 vec, vec4 pows)
 {
-	return vec3(pow(vec.x, pows.x), pow(vec.y, pows.y), pow(vec.z, pows.z));
+	return vec4(pow(vec.x, pows.x), pow(vec.y, pows.y), pow(vec.z, pows.z), pow(vec.w, pows.w));
 }
 
-vec3 clamp(vec3 v, float min, float max)
+vec4 clamp(vec4 v, float min, float max)
 {
-	return vec3(clamp(v.x, min, max), clamp(v.y, min, max), clamp(v.z, min, max));
+	return vec4(clamp(v.x, min, max), clamp(v.y, min, max), clamp(v.z, min, max), clamp(v.w, min, max));
 }
 
-void writePixel(ostream& out, vec3 color)
+void writePixel(ostream& out, vec4 color)
 {
+	// cout << color << endl;
 	// float gamma = 2.2; // for gamma correction TODO apply in shader instead
 	// color = pow_vec(color, vec3(1/gamma));
-	// color = clamp(color, 0.0, 1.0);
+	color = clamp(color, 0.0, 1.0);
 	out << int(color.x * 255) << "\t" << int(color.y * 255) << "\t" << int(color.z * 255) << " \n";
 }
 
 // writes the pixels to a ppm file
-void writeOut(ostream& out, vec3 pixels[WIDTH][HEIGHT]) 
+void writeOut(ostream& out, vec4 pixels[WIDTH][HEIGHT]) 
 {
 	out << "P3" << "\n";
 	out << WIDTH << "\t" << HEIGHT << "\n";
@@ -173,7 +184,6 @@ public:
 	vec3 vertical;
 	vec3 llc_minus_campos;
 	vec3 camera_location;
-	vec3 pixels[WIDTH][HEIGHT];
 	// end
 
 	// build ray trace camera
@@ -351,15 +361,15 @@ public:
 		std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
 		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
 
-		ssbo_CPUMEM.w = ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec3();
-		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec3();
-		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec3();
-		ssbo_CPUMEM.background = vec3();
+		ssbo_CPUMEM.w = ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec4();
+		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
+		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
+		ssbo_CPUMEM.background = vec4();
 		for (int i = 0; i < WIDTH; i ++)
 		{
 			for (int j = 0; j < HEIGHT; j ++)
 			{
-				ssbo_CPUMEM.pixels[i][j] = vec3();
+				ssbo_CPUMEM.pixels[i][j] = vec4();
 			}
 		}
 
@@ -405,13 +415,13 @@ public:
 	{
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
-		ssbo_CPUMEM.w = w;
-		ssbo_CPUMEM.u = u;
-		ssbo_CPUMEM.v = v;
-		ssbo_CPUMEM.horizontal = horizontal;
-		ssbo_CPUMEM.vertical = vertical;
-		ssbo_CPUMEM.llc_minus_campos = llc_minus_campos;
-		ssbo_CPUMEM.camera_location = camera_location;
+		ssbo_CPUMEM.w = vec4(w, 0);
+		ssbo_CPUMEM.u = vec4(u, 0);
+		ssbo_CPUMEM.v = vec4(v, 0);
+		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
+		ssbo_CPUMEM.vertical = vec4(vertical, 0);
+		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
+		ssbo_CPUMEM.camera_location = vec4(camera_location, 0);
 
 		GLuint block_index = 0;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
@@ -441,14 +451,13 @@ public:
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-		// TODO use memcpy instead of loop
-		for (int j = 0; j < HEIGHT; j ++)
-		{
-			for (int i = 0; i < WIDTH; i ++)
-			{
-				pixels[i][j] = ssbo_CPUMEM.pixels[i][j];
-			}
-		}
+		// for (int i = 0; i < WIDTH; i ++)
+		// {
+		// 	for (int j = 0; j < HEIGHT; j ++)
+		// 	{
+		// 		cout << ssbo_CPUMEM.pixels[i][j] << endl;
+		// 	}
+		// }
 	}
 
 	//General OGL initialization - set OGL state here
@@ -515,8 +524,16 @@ public:
 
 		compute();
 
+		// for (int i = 0; i < WIDTH; i ++)
+		// {
+		// 	for (int j = 0; j < HEIGHT; j ++)
+		// 	{
+		// 		cout << ssbo_CPUMEM.pixels[i][j] << endl;
+		// 	}
+		// }
+
 		if (outFile)
-			writeOut(outFile, pixels);
+			writeOut(outFile, ssbo_CPUMEM.pixels);
 		else 
 			cout << "error writing file" << endl;
 
