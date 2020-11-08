@@ -33,7 +33,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
-	vec4 pixels[WIDTH][HEIGHT];
+	// vec4 pixels[WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -142,7 +142,9 @@ void main()
 
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
-	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);	
+	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 result_color;
 
 	// ray direction calculation
 	float hp = float(x) / WIDTH;
@@ -168,7 +170,7 @@ void main()
 	}
 	if (ind == -1) // ray intersected no geometry
 	{
-		pixels[x][y] = background;
+		result_color = background;
 	}
 	else // ray intersected something; we get it's color and write out
 	{
@@ -196,13 +198,16 @@ void main()
 		if (lit)
 		{
 			vec3 l = normalize(light_pos.xyz - curr_pos);
-			pixels[x][y] = vec4(simple_shapes[ind][2].xyz * clamp(dot(normal, l), 0, 1), 0);
+			result_color = vec4(simple_shapes[ind][2].xyz * clamp(dot(normal, l), 0, 1), 0);
 		}
 		else
 		{
-			pixels[x][y] = vec4(0); // we are in shadow
+			result_color = vec4(0); // we are in shadow
 		}
 	}
-	imageStore(img_output, pixel_coords, pixels[x][y]);
+	float gamma = 1/2.2; // for gamma correction
+	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
+
+	imageStore(img_output, pixel_coords, result_color);
 	return;
 }

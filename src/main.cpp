@@ -43,7 +43,7 @@ public:
 	vec4 simple_shapes[NUM_SHAPES][3];
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
-	vec4 pixels[WIDTH][HEIGHT];
+	// vec4 pixels[WIDTH][HEIGHT];
 };
 
 
@@ -137,24 +137,24 @@ vec4 clamp(vec4 v, float min, float max)
 	return vec4(clamp(v.x, min, max), clamp(v.y, min, max), clamp(v.z, min, max), clamp(v.w, min, max));
 }
 
-void writePixel(ostream& out, vec4 color)
-{
-	// float gamma = 2.2; // for gamma correction TODO apply in shader instead
-	// color = pow_vec(color, vec3(1/gamma));
-	color = clamp(color, 0.0, 1.0);
-	out << int(color.x * 255) << "\t" << int(color.y * 255) << "\t" << int(color.z * 255) << " \n";
-}
+// void writePixel(ostream& out, vec4 color)
+// {
+// 	// float gamma = 2.2; // for gamma correction TODO apply in shader instead
+// 	// color = pow_vec(color, vec3(1/gamma));
+// 	color = clamp(color, 0.0, 1.0);
+// 	out << int(color.x * 255) << "\t" << int(color.y * 255) << "\t" << int(color.z * 255) << " \n";
+// }
 
-// writes the pixels to a ppm file
-void writeOut(ostream& out, vec4 pixels[WIDTH][HEIGHT]) 
-{
-	out << "P3" << "\n";
-	out << WIDTH << "\t" << HEIGHT << "\n";
-	out << "255" << "\n";
-	for (int y = 0; y < HEIGHT; y ++)
-		for (int x = 0; x < WIDTH; x ++)
-			writePixel(out, pixels[x][y]);
-}
+// // writes the pixels to a ppm file
+// void writeOut(ostream& out, vec4 pixels[WIDTH][HEIGHT]) 
+// {
+// 	out << "P3" << "\n";
+// 	out << WIDTH << "\t" << HEIGHT << "\n";
+// 	out << "255" << "\n";
+// 	for (int y = 0; y < HEIGHT; y ++)
+// 		for (int x = 0; x < WIDTH; x ++)
+// 			writePixel(out, pixels[x][y]);
+// }
 
 class scene
 {
@@ -417,13 +417,13 @@ public:
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
 
-		for (int i = 0; i < WIDTH; i ++)
-		{
-			for (int j = 0; j < HEIGHT; j ++)
-			{
-				ssbo_CPUMEM.pixels[i][j] = vec4();
-			}
-		}
+		// for (int i = 0; i < WIDTH; i ++)
+		// {
+		// 	for (int j = 0; j < HEIGHT; j ++)
+		// 	{
+		// 		ssbo_CPUMEM.pixels[i][j] = vec4();
+		// 	}
+		// }
 
 		// must pack simple shapes into buffer
 		for (int i = 0; i < NUM_SHAPES; i ++)
