@@ -5,7 +5,7 @@
 #define WIDTH 640
 #define HEIGHT 480
 #define RECURSION_DEPTH 50
-#define NUM_SHAPES 1
+#define NUM_SHAPES 3
 
 #define SPHERE_ID 1
 #define PLANE_ID 5
@@ -27,12 +27,11 @@ layout (std430, binding=0) volatile buffer shader_data
 	vec4 background; // represents the background color
 	
 	// vec4 light_pos;
-	vec4 simple_shapes[NUM_SHAPES][2];
-	// sphere: vec4 center, radius, vec4 color, shape_id
-	// plane: vec4 normal, distance from origin, vec4 color, shape_id
+	vec4 simple_shapes[NUM_SHAPES][3];
+	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
+	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	vec4 pixels[WIDTH][HEIGHT];
-	vec4 garbage[WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -46,12 +45,6 @@ float sphere_eval_ray(vec3 dir, int shape_index)
 	vec3 campos = camera_location.xyz;
 
 	vec3 campos_minus_center = campos - center;
-
-	uint x = gl_GlobalInvocationID.x;
-	uint y = gl_GlobalInvocationID.y;
-	garbage[x][y] = camera_location;
-
-
 
 	float dot_of_stuff = dot(dir, campos_minus_center);
 
@@ -91,14 +84,28 @@ float sphere_eval_ray(vec3 dir, int shape_index)
 	return -1;
 }
 
+float plane_eval_ray(vec3 dir, int shape_index)
+{
+	vec3 normal = simple_shapes[shape_index][0].xyz;
+	float denom = dot(normal, dir);
+	if (denom < 0.001 && denom > -0.001)
+		return -1;
+	vec3 p0 = simple_shapes[shape_index][1].xyz;
+	return dot(normal, p0 - camera_location.xyz) / denom;
+}
+
 float eval_ray(vec3 dir, int shape_index)
 {
-	int shape_id = int(simple_shapes[shape_index][1].w);
+	int shape_id = int(simple_shapes[shape_index][2].w);
 	if (shape_id == SPHERE_ID)
 	{
 		return sphere_eval_ray(dir, shape_index);
 	}
-	// need case for planes
+	if (shape_id == PLANE_ID)
+	{
+		return plane_eval_ray(dir, shape_index);
+	}
+	// other shapes?
 	return -1;
 }
 
@@ -137,7 +144,7 @@ void main()
 	}
 	else // ray intersected something; we get it's color and write out
 	{
-		pixels[x][y] = simple_shapes[ind][1];
+		pixels[x][y] = simple_shapes[ind][2];
 		// pixels[x][y] = vec4(0);
 	}
 

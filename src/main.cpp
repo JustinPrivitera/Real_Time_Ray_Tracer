@@ -26,7 +26,7 @@ using namespace glm;
 
 #define WIDTH 640
 #define HEIGHT 480
-#define NUM_SHAPES 1
+#define NUM_SHAPES 3
 
 class ssbo_data
 {
@@ -40,11 +40,10 @@ public:
 	vec4 camera_location;
 	vec4 background; // represents the background color
 	// vec4 light_pos;
-	vec4 simple_shapes[NUM_SHAPES][2];
-	// sphere: vec4 center, radius, vec4 color, shapeid
-	// plane: vec4 normal, distance from origin, vec4 color, shapeid
+	vec4 simple_shapes[NUM_SHAPES][3];
+	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
+	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 	vec4 pixels[WIDTH][HEIGHT];
-	vec4 garbage[WIDTH][HEIGHT];
 };
 
 
@@ -222,10 +221,25 @@ public:
 		float radius = 2;
 		pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
 		sphere* mysphere = new sphere(center,radius,color);
+
+		// sphere
+		center = vec3(4,0,-2);
+		radius = 3.5;
+		color = pigment(vec3(0.8,0.8,0.1));
+		sphere* mysphere2 = new sphere(center,radius,color);
+
+		// plane
+		vec3 normal = vec3(0, 1, 0);
+		float distance_from_origin = -4;
+		color = pigment(vec3(0.3,0.0,0.5));
+		plane* myplane = new plane(normal, distance_from_origin, color);
 		
 		// shapes vector
 		vector<shape*> myshapes = vector<shape*>();
 		myshapes.push_back(mysphere);
+		myshapes.push_back(mysphere2);
+		myshapes.push_back(myplane);
+
 		if (myshapes.size() != NUM_SHAPES)
 			cerr << "num shapes mismatch" << endl;
 
@@ -388,7 +402,19 @@ public:
 				int id = SPHERE_ID;
 
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
-				ssbo_CPUMEM.simple_shapes[i][1] = vec4(color, id);
+				ssbo_CPUMEM.simple_shapes[i][2] = vec4(color, id);
+			}
+			if (curr->id() == PLANE_ID)
+			{
+				vec3 normal = ((plane*) curr)->normal;
+				float dist_from_orig = ((plane*) curr)->dist_from_orig;
+				vec3 color = ((plane*) curr)->p.rgb;
+				vec3 p0 = ((plane*) curr)->p0;
+				int id = PLANE_ID;
+
+				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
+				ssbo_CPUMEM.simple_shapes[i][1] = vec4(p0, 0);
+				ssbo_CPUMEM.simple_shapes[i][2] = vec4(color, id);
 			}
 		}
 
@@ -549,6 +575,7 @@ public:
 			cout << "error writing file" << endl;
 
 		// double frametime = get_last_elapsed_time();
+		// cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
 		// update(frametime);
 
 		// // Get current frame buffer size.
