@@ -26,8 +26,7 @@ using namespace glm;
 
 #define WIDTH 640
 #define HEIGHT 480
-
-#define NUM_BALLS 10
+#define NUM_SHAPES 1
 
 class ssbo_data
 {
@@ -40,8 +39,12 @@ public:
 	vec4 llc_minus_campos;
 	vec4 camera_location;
 	vec4 background; // represents the background color
-	// need a way to represent a scene
+	// vec4 light_pos;
+	vec4 simple_shapes[NUM_SHAPES][2];
+	// sphere: vec4 center, radius, vec4 color, shapeid
+	// plane: vec4 normal, distance from origin, vec4 color, shapeid
 	vec4 pixels[WIDTH][HEIGHT];
+	vec4 garbage[WIDTH][HEIGHT];
 };
 
 
@@ -137,7 +140,6 @@ vec4 clamp(vec4 v, float min, float max)
 
 void writePixel(ostream& out, vec4 color)
 {
-	// cout << color << endl;
 	// float gamma = 2.2; // for gamma correction TODO apply in shader instead
 	// color = pow_vec(color, vec3(1/gamma));
 	color = clamp(color, 0.0, 1.0);
@@ -158,13 +160,13 @@ void writeOut(ostream& out, vec4 pixels[WIDTH][HEIGHT])
 class scene
 {
 public:
-	scene(vector<shape> shapes, vector<light_source> lights) : 
+	scene(vector<shape*> shapes, vector<light_source> lights) : 
 		shapes(shapes), lights(lights) {}
 	// scene(vector<shape> shapes, vector<light_source> lights, camera cam) : 
 	// 	shapes(shapes), lights(lights), cam(cam) {}
 
 public:
-	vector<shape> shapes;
+	vector<shape*> shapes;
 	vector<light_source> lights;
 	// camera cam;
 };
@@ -218,12 +220,14 @@ public:
 		// sphere
 		vec3 center = vec3(0,0,0);
 		float radius = 2;
-		pigment color = pigment(vec3(0.8,0.2,0.5));
-		sphere mysphere = sphere(center,radius,color);
+		pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
+		sphere* mysphere = new sphere(center,radius,color);
 		
 		// shapes vector
-		vector<shape> myshapes = vector<shape>();
+		vector<shape*> myshapes = vector<shape*>();
 		myshapes.push_back(mysphere);
+		if (myshapes.size() != NUM_SHAPES)
+			cerr << "num shapes mismatch" << endl;
 
 		// light sources
 		vector<light_source> lights = vector<light_source>();
@@ -350,7 +354,6 @@ public:
 	{
 		// need to build the rectangle that we render for ray tracing
 
-
 		//initialize the net mesh
 		init_mesh();
 	}
@@ -364,12 +367,28 @@ public:
 		ssbo_CPUMEM.w = ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec4();
 		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
 		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
-		ssbo_CPUMEM.background = vec4();
+		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 		for (int i = 0; i < WIDTH; i ++)
 		{
 			for (int j = 0; j < HEIGHT; j ++)
 			{
 				ssbo_CPUMEM.pixels[i][j] = vec4();
+			}
+		}
+
+		// must pack simple shapes into buffer
+		for (int i = 0; i < NUM_SHAPES; i ++)
+		{
+			shape* curr = myscene.shapes[i];
+			if (curr->id() == SPHERE_ID)
+			{
+				vec3 center = ((sphere*) curr)->location;
+				float rad = ((sphere*) curr)->radius;
+				vec3 color = ((sphere*) curr)->p.rgb;
+				int id = SPHERE_ID;
+
+				ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
+				ssbo_CPUMEM.simple_shapes[i][1] = vec4(color, id);
 			}
 		}
 
@@ -430,8 +449,6 @@ public:
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
 		glUseProgram(computeProgram);
 
-		// glUniform1ui(1, b);
-
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
 		int siz = sizeof(ssbo_data);
@@ -450,14 +467,6 @@ public:
 		siz = sizeof(ssbo_data);
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-		// for (int i = 0; i < WIDTH; i ++)
-		// {
-		// 	for (int j = 0; j < HEIGHT; j ++)
-		// 	{
-		// 		cout << ssbo_CPUMEM.pixels[i][j] << endl;
-		// 	}
-		// }
 	}
 
 	//General OGL initialization - set OGL state here
@@ -520,7 +529,9 @@ public:
 
 		llc_minus_campos = -0.5 * (horizontal + vertical) - w;
 
-		// camera_location doesn't change just yet
+		camera_location = rt_camera.location;
+
+		// copies of the SSBO data since these values will change each frame
 
 		compute();
 
@@ -528,7 +539,7 @@ public:
 		// {
 		// 	for (int j = 0; j < HEIGHT; j ++)
 		// 	{
-		// 		cout << ssbo_CPUMEM.pixels[i][j] << endl;
+		// 		cout << ssbo_CPUMEM.garbage[i][j] << endl;
 		// 	}
 		// }
 
