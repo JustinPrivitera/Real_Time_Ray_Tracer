@@ -682,7 +682,8 @@ int main(int argc, char **argv)
     }
 
 	// Quit program.
-	 windowManager->shutdown();
+	windowManager->shutdown();
 	//outFile.close();
+	cout << endl;
 	return 0;
 }

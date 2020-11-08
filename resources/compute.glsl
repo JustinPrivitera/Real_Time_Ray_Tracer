@@ -4,7 +4,7 @@
 
 #define WIDTH 640
 #define HEIGHT 480
-#define RECURSION_DEPTH 50
+#define RECURSION_DEPTH 50 // this isn't used yet
 #define NUM_SHAPES 3
 
 #define SPHERE_ID 1
