@@ -37,6 +37,7 @@
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\resources\compute.glsl" />
     <None Include="..\resources\height_frag.glsl" />
     <None Include="..\resources\height_vertex.glsl" />
     <None Include="..\resources\shader_fragment.glsl" />

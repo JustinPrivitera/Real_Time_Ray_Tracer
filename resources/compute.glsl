@@ -15,7 +15,9 @@
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
-layout (std430, binding=0) volatile buffer shader_data
+layout(rgba32f, binding = 0) uniform image2D img_output;									//output image
+
+layout (std430, binding = 0) volatile buffer shader_data
 { 
   	vec4 w;
 	vec4 u;
@@ -140,6 +142,7 @@ void main()
 
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
+	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);	
 
 	// ray direction calculation
 	float hp = float(x) / WIDTH;
@@ -200,6 +203,6 @@ void main()
 			pixels[x][y] = vec4(0); // we are in shadow
 		}
 	}
-
+	imageStore(img_output, pixel_coords, pixels[x][y]);
 	return;
 }

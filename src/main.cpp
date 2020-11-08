@@ -204,16 +204,23 @@ public:
 
 	// Our shader program
 	std::shared_ptr<Program> prog, heightshader;
-
 	// Contains vertex information for OpenGL
-	GLuint VertexArrayID;
+	GLuint VertexArrayID, VertexArrayIDScreen;
 
 	// Data necessary to give our box to OpenGL
-	GLuint MeshPosID, MeshTexID, IndexBufferIDBox;
+	GLuint VertexBufferID, VertexBufferTexScreen, VertexBufferIDScreen,VertexNormDBox, VertexTexBox, IndexBufferIDBox, InstanceBuffer;
+
+	//framebufferstuff
+	GLuint fb, depth_fb, FBOtex;
+	//texture data
+	GLuint Texture, Texture2;
+	GLuint CS_tex_A, CS_tex_B;
+
+	int tex_w, tex_h;
 
 	//texture data
-	GLuint Texture;
-	GLuint Texture2,HeightTex;
+	//GLuint Texture;
+	//GLuint Texture2,HeightTex;
 
 	scene init_scene()
 	{
@@ -312,66 +319,122 @@ public:
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 	}
-#define MESHSIZE 4
-	void init_mesh()
-	{
-		// //generate the VAO
-		// glGenVertexArrays(1, &VertexArrayID);
-		// glBindVertexArray(VertexArrayID);
+        void initGeom()
+        {
+            string resourceDirectory = "../resources";
 
-		// //generate vertex buffer to hand off to OGL
-		// glGenBuffers(1, &MeshPosID);
-		// glBindBuffer(GL_ARRAY_BUFFER, MeshPosID);
-		// vec3 vertices[MESHSIZE];
-		
-		// vertices[0] = vec3(1.0, 0.0, 0.0);
-		// vertices[1] = vec3(0.0, 0.0, 0.0);
-		// vertices[2] = vec3(0.0, 0.0, 1.0);
-		// vertices[3] = vec3(1.0, 0.0, 1.0);
-		
+            // screen plane
+            glGenVertexArrays(1, &VertexArrayIDScreen);
+            glBindVertexArray(VertexArrayIDScreen);
+            // generate vertex buffer to hand off to OGL
+            glGenBuffers(1, &VertexBufferIDScreen);
+            // set the current state to focus on our vertex buffer
+            glBindBuffer(GL_ARRAY_BUFFER, VertexBufferIDScreen);
+            vec3 vertices[6];
+            vertices[0] = vec3(-1, -1, 0);
+            vertices[1] = vec3(1, -1, 0);
+            vertices[2] = vec3(1, 1, 0);
+            vertices[3] = vec3(-1, -1, 0);
+            vertices[4] = vec3(1, 1, 0);
+            vertices[5] = vec3(-1, 1, 0);
+            // actually memcopy the data - only do this once
+            glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), vertices,
+                         GL_STATIC_DRAW);
+            // we need to set up the vertex array
+            glEnableVertexAttribArray(0);
+            // key function to get up how many elements to pull out at a time
+            // (3)
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+            // generate vertex buffer to hand off to OGL
+            glGenBuffers(1, &VertexBufferTexScreen);
+            // set the current state to focus on our vertex buffer
+            glBindBuffer(GL_ARRAY_BUFFER, VertexBufferTexScreen);
+            vec2 texscreen[6];
+            texscreen[0] = vec2(0, 0);
+            texscreen[1] = vec2(1, 0);
+            texscreen[2] = vec2(1, 1);
+            texscreen[3] = vec2(0, 0);
+            texscreen[4] = vec2(1, 1);
+            texscreen[5] = vec2(0, 1);
+            // actually memcopy the data - only do this once
+            glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec2), texscreen,
+                         GL_STATIC_DRAW);
+            // we need to set up the vertex array
+            glEnableVertexAttribArray(1);
+            // key function to get up how many elements to pull out at a time
+            // (3)
+            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+            glBindVertexArray(0);
 
-		// glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) *MESHSIZE, vertices, GL_DYNAMIC_DRAW);
-		// glEnableVertexAttribArray(0);
-		// glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-		// //tex coords
-		// float t = 1. / 100;
-		// vec2 tex[MESHSIZE];
-		// tex[0] = vec2(1.0, 0.0);
-		// tex[1] = vec2(0,  0.0);
-		// tex[2] = vec2(0,  1.0);
-		// tex[3] = vec2(1.0, 1.0);
+            int width, height, channels;
+            char filepath[1000];
 
-		// glGenBuffers(1, &MeshTexID);
-		// //set the current state to focus on our vertex buffer
-		// glBindBuffer(GL_ARRAY_BUFFER, MeshTexID);
-		// glBufferData(GL_ARRAY_BUFFER, sizeof(vec2) * MESHSIZE, tex, GL_STATIC_DRAW);
-		// glEnableVertexAttribArray(1);
-		// glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+            // texture 1
 
-		// glGenBuffers(1, &IndexBufferIDBox);
-		// //set the current state to focus on our vertex buffer
-		// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
-		// GLushort elements[6];
-		// int ind = 0;
-		
-		// elements[0] = 0;
-		// elements[1] = 1;
-		// elements[2] = 2;
-		// elements[3] = 0;
-		// elements[4] = 2;
-		// elements[5] = 3;
-				
-		// glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLushort) * 6, elements, GL_STATIC_DRAW);
-		// glBindVertexArray(0);
-	}
-	/*Note that any gl calls must always happen after a GL state is initialized */
-	void initGeom()
-	{
-		// need to build the rectangle that we render for ray tracing
+            //[TWOTEXTURES]
+            // set the 2 textures to the correct samplers in the fragment
+            // shader:
+            GLuint Tex1Location;
 
-		//initialize the net mesh
-		init_mesh();
-	}
+            Tex1Location = glGetUniformLocation(
+                prog->pid,
+                "tex");  // tex, tex2... sampler in the fragment shader
+            glUseProgram(prog->pid);
+            glUniform1i(Tex1Location, 0);
+
+            glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
+            // RGBA8 2D texture, 24 bit depth texture, 256x256
+            //-------------------------
+            // Does the GPU support current FBO configuration?
+            GLenum status;
+            status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            switch (status)
+            {
+                case GL_FRAMEBUFFER_COMPLETE:
+                    cout << "status framebuffer: good";
+                    break;
+                default:
+                    cout << "status framebuffer: bad!!!!!!!!!!!!!!!!!!!!!!!!!";
+            }
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+            // make a texture (buffer) on the GPU to store the input image
+            tex_w = width, tex_h = height;  // size
+            glGenTextures(
+                1, &CS_tex_A);  // Generate texture and store context number
+            glActiveTexture(
+                GL_TEXTURE0);  // since we have 2 textures in this program, we
+                               // need to associate the input texture with "0"
+                               // meaning first texture
+            glBindTexture(GL_TEXTURE_2D, CS_tex_A);  // highlight input texture
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                            GL_CLAMP_TO_EDGE);  // texture sampler parameter
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                            GL_CLAMP_TO_EDGE);  // texture sampler parameter
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                            GL_LINEAR);  // texture sampler parameter
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                            GL_LINEAR);  // texture sampler parameter
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA,
+                         GL_FLOAT, NULL);  // copy image data to texture
+            glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE,
+                               GL_RGBA32F);  // enable texture in shader
+
+            // make a texture (buffer) on the GPU to store the output image
+            glGenTextures(1, &CS_tex_B);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, CS_tex_B);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0,
+                         GL_RGBA,
+                         GL_FLOAT, NULL);
+            glBindImageTexture(1, CS_tex_B, 0, GL_FALSE, 0, GL_READ_WRITE,
+                               GL_RGBA32F);
+        }
+
 
 	void computeInitGeom()
 	{
@@ -457,12 +520,13 @@ public:
 		
 		GLuint block_index;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		GLuint ssbo_binding_point_index = 2;
+		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
 	}
 
-	void compute()
+	int compute()
 	{
+        static bool flip = 1;
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.w = vec4(w, 0);
@@ -473,7 +537,7 @@ public:
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
 		ssbo_CPUMEM.camera_location = vec4(camera_location, 0);
 
-		GLuint block_index = 0;
+		GLuint block_index = 1;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
@@ -488,6 +552,7 @@ public:
 
 		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 		
@@ -498,6 +563,8 @@ public:
 		siz = sizeof(ssbo_data);
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+        return flip;
 	}
 
 	//General OGL initialization - set OGL state here
@@ -549,12 +616,17 @@ public:
 
 	void render()
 	{
+            if (mycam.w == 1) 
+				rt_camera.location.z -= 0.1;
+            if (mycam.s == 1) 
+				rt_camera.location.z += 0.1;
+
 		w = normalize(rt_camera.location - rt_camera.look_at);
 		u = normalize(cross(rt_camera.up, w));
 		v = normalize(cross(w, u));
 
 		horizontal = length(rt_camera.right) * u;
-		vertical = length(rt_camera.up) * v * -1; // hehe the -1 is back
+		vertical = length(rt_camera.up) * v; // hehe the -1 is back
 
 		// llc = rt_camera.location - 0.5 * (horizontal + vertical) - w;
 
@@ -566,113 +638,42 @@ public:
 
 		// copies of the SSBO data since these values will change each frame
 
-		compute();
+		int texnum = compute();
 
 		// we want to render this to a texture
+        int width, height;
+        glfwGetFramebufferSize(windowManager->getHandle(), &width,
+                                &height);
+        glViewport(0, 0, width, height);
+        // Clear framebuffer.
+        glClearColor(1.0f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        prog->bind();
+        glActiveTexture(GL_TEXTURE0);
+        if (texnum == 0)
+            glBindTexture(GL_TEXTURE_2D, CS_tex_B);
+        else
+            glBindTexture(GL_TEXTURE_2D, CS_tex_A);
 
-		if (outFile)
+        glBindVertexArray(VertexArrayIDScreen);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        prog->unbind();
+        
+		/*if (outFile)
 			writeOut(outFile, ssbo_CPUMEM.pixels);
 		else 
-			cout << "error writing file" << endl;
+			cout << "error writing file" << endl;*/
 
-		// double frametime = get_last_elapsed_time();
-		// cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
+		 double frametime = get_last_elapsed_time();
+		 cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
 		// update(frametime);
-
-		// // Get current frame buffer size.
-		// int width, height;
-		// glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-		// float aspect = width/(float)height;
-		// glViewport(0, 0, width, height);
-
-		// // Clear framebuffer.
-		// glClearColor(0.8f, 0.8f, 1.0f, 1.0f);
-		// glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// // Create the matrix stacks - please leave these alone for now
-		
-		// glm::mat4 V, M, P; //View, Model and Perspective matrix
-		// mat4 TransZ, S, RotateY, RotateX, TransY;
-		// V = glm::mat4(1);
-		// M = glm::mat4(1);
-		// // Apply orthographic projection....
-		// P = glm::ortho(-1 * aspect, 1 * aspect, -1.0f, 1.0f, -2.0f, 100.0f);		
-		// if (width < height)
-		// 	{
-		// 	P = glm::ortho(-1.0f, 1.0f, -1.0f / aspect,  1.0f / aspect, -2.0f, 100.0f);
-		// 	}
-		// // ...but we overwrite it (optional) with a perspective projection.
-		// P = glm::perspective((float)(3.14159 / 4.), (float)((float)width/ (float)height), 0.1f, 1000.0f); //so much type casting... GLM metods are quite funny ones
-
-		// //animation with the model matrix:
-		// static float w = 0.0;
-		// w += 1.0 * frametime;//rotation angle
-		// float trans = 0;// sin(t) * 2;
-		// RotateY = glm::rotate(glm::mat4(1.0f), w, glm::vec3(0.0f, 1.0f, 0.0f));
-		// float angle = -3.1415926/2.0;
-		// RotateX = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(1.0f, 0.0f, 0.0f));
-
-		// // Draw the box using GLSL.
-		// prog->bind();
-
-		// V = mycam.process(frametime);
-		// //send the matrices to the shaders
-
-		// glUniformMatrix4fv(prog->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		// glUniformMatrix4fv(prog->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		// glUniform3fv(prog->getUniform("campos"), 1, &mycam.pos[0]);
-
-		// glActiveTexture(GL_TEXTURE0);
-		// glBindTexture(GL_TEXTURE_2D, HeightTex);
-
-		// for (int i = 0; i < NUM_BALLS; i ++)
-		// {
-		// 	TransZ = glm::translate(glm::mat4(1.0f), plutos[i].pos);
-		// 	S = glm::scale(glm::mat4(1.0f), glm::vec3(plutos[i].r));
-		// 	M =  TransZ * RotateY * RotateX * S;
-		// 	glUniformMatrix4fv(prog->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		// 	shape->draw(prog,0);
-		// }
-
-		// heightshader->bind();
-		// //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		// S = glm::scale(glm::mat4(1.0f), glm::vec3(10.0f, 10.0f, 10.0f));
-		// TransY = glm::translate(glm::mat4(1.0f), glm::vec3(-5.0f, -5.0f, -25));
-		// M = TransY * S;
-		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		// glUniformMatrix4fv(heightshader->getUniform("P"), 1, GL_FALSE, &P[0][0]);
-		// glUniformMatrix4fv(heightshader->getUniform("V"), 1, GL_FALSE, &V[0][0]);
-		
-		// glBindVertexArray(VertexArrayID);
-		// glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
-		// glActiveTexture(GL_TEXTURE1);
-		// glBindTexture(GL_TEXTURE_2D, Texture);
-		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
-
-		// M = TransY * S * RotateX;
-		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
-
-		// RotateY = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		// M = TransY * S * RotateY*RotateX;
-		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
-
-		// RotateY = glm::rotate(glm::mat4(1.0f), -angle, glm::vec3(0.0f, 1.0f, 0.0f));
-		// TransY = glm::translate(glm::mat4(1.0f), glm::vec3(5.0f, -5.0f, -15));
-		// M = TransY * S * RotateY * RotateX;
-		// glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
-		// glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (void*)0);
-		// heightshader->unbind();
-
 	}
 
 };
 //******************************************************************************************
 int main(int argc, char **argv)
 {
-	outFile.open("../out.ppm");
-	///////////////////////////////////////////////////////////
+	//outFile.open("../out.ppm");
 
 	std::string resourceDir = "../resources"; // Where the resources are loaded from
 	if (argc >= 2)
@@ -704,10 +705,10 @@ int main(int argc, char **argv)
 
 	/* your main will always include a similar set up to establish your window
 		and GL context, etc. */
-	// WindowManager * windowManager = new WindowManager();
-	// windowManager->init(1920, 1080);
-	// windowManager->setEventCallbacks(application);
-	// application->windowManager = windowManager;
+	 WindowManager * windowManager = new WindowManager();
+	 windowManager->init(WIDTH, HEIGHT);
+	 windowManager->setEventCallbacks(application);
+	 application->windowManager = windowManager;
 
 	/* This is the code that will likely change program to program as you
 		may need to initialize or set up different data and state */
@@ -717,21 +718,20 @@ int main(int argc, char **argv)
 	application->computeInit();
 	application->computeInitGeom();
 
-	// Loop until the user closes the window.
-	// while(! glfwWindowShouldClose(windowManager->getHandle()))
-	// {
+	while (!glfwWindowShouldClose(windowManager->getHandle()))
+    {
+        application->render();
 
-		// Render scene.
-		application->render();
-
-	// 	// Swap front and back buffers.
-	// 	glfwSwapBuffers(windowManager->getHandle());
-	// 	// Poll for and process events.
-	// 	glfwPollEvents();
-	// }
+        // Swap front and back buffers.
+        glfwSwapBuffers(windowManager->getHandle());
+        // Poll for and process events.
+        glfwPollEvents();
+        // timef = 1./get_last_elapsed_time();
+        // printf("%f\n", timef);
+    }
 
 	// Quit program.
-	// windowManager->shutdown();
-	outFile.close();
+	 windowManager->shutdown();
+	//outFile.close();
 	return 0;
 }
