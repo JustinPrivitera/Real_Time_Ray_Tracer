@@ -557,17 +557,13 @@ public:
 
 		camera_location = rt_camera.location;
 
+		// if i want to move gemoetry then i need the geometry buffer
+
 		// copies of the SSBO data since these values will change each frame
 
 		compute();
 
-		// for (int i = 0; i < WIDTH; i ++)
-		// {
-		// 	for (int j = 0; j < HEIGHT; j ++)
-		// 	{
-		// 		cout << ssbo_CPUMEM.garbage[i][j] << endl;
-		// 	}
-		// }
+		// we want to render this to a texture
 
 		if (outFile)
 			writeOut(outFile, ssbo_CPUMEM.pixels);
@@ -719,7 +715,6 @@ int main(int argc, char **argv)
 	// Loop until the user closes the window.
 	// while(! glfwWindowShouldClose(windowManager->getHandle()))
 	// {
-		// application->compute();
 
 		// Render scene.
 		application->render();
