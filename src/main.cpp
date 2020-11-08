@@ -218,10 +218,6 @@ public:
 
 	int tex_w, tex_h;
 
-	//texture data
-	//GLuint Texture;
-	//GLuint Texture2,HeightTex;
-
 	scene init_scene()
 	{
 		// sphere
@@ -369,10 +365,6 @@ public:
             int width, height, channels;
             char filepath[1000];
 
-            // texture 1
-
-            //[TWOTEXTURES]
-            // set the 2 textures to the correct samplers in the fragment
             // shader:
             GLuint Tex1Location;
 
@@ -386,20 +378,9 @@ public:
             // RGBA8 2D texture, 24 bit depth texture, 256x256
             //-------------------------
             // Does the GPU support current FBO configuration?
-            GLenum status;
-            status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-            switch (status)
-            {
-                case GL_FRAMEBUFFER_COMPLETE:
-                    cout << "status framebuffer: good";
-                    break;
-                default:
-                    cout << "status framebuffer: bad!!!!!!!!!!!!!!!!!!!!!!!!!";
-            }
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
             // make a texture (buffer) on the GPU to store the input image
-            tex_w = width, tex_h = height;  // size
             glGenTextures(
                 1, &CS_tex_A);  // Generate texture and store context number
             glActiveTexture(
@@ -419,20 +400,6 @@ public:
                          GL_FLOAT, NULL);  // copy image data to texture
             glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE,
                                GL_RGBA32F);  // enable texture in shader
-
-            // make a texture (buffer) on the GPU to store the output image
-            glGenTextures(1, &CS_tex_B);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, CS_tex_B);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0,
-                         GL_RGBA,
-                         GL_FLOAT, NULL);
-            glBindImageTexture(1, CS_tex_B, 0, GL_FALSE, 0, GL_READ_WRITE,
-                               GL_RGBA32F);
         }
 
 
@@ -524,9 +491,8 @@ public:
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
 	}
 
-	int compute()
+	void compute()
 	{
-        static bool flip = 1;
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.w = vec4(w, 0);
@@ -563,8 +529,6 @@ public:
 		siz = sizeof(ssbo_data);
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-        return flip;
 	}
 
 	//General OGL initialization - set OGL state here
@@ -610,16 +574,12 @@ public:
 		heightshader->addAttribute("vertTex");
 	}
 
-	// void update(float dt)
-	// {
-	// }
-
 	void render()
 	{
-            if (mycam.w == 1) 
-				rt_camera.location.z -= 0.1;
-            if (mycam.s == 1) 
-				rt_camera.location.z += 0.1;
+		if (mycam.w == 1) 
+			rt_camera.location.z -= 0.1;
+		if (mycam.s == 1) 
+			rt_camera.location.z += 0.1;
 
 		w = normalize(rt_camera.location - rt_camera.look_at);
 		u = normalize(cross(rt_camera.up, w));
@@ -638,7 +598,7 @@ public:
 
 		// copies of the SSBO data since these values will change each frame
 
-		int texnum = compute();
+		compute();
 
 		// we want to render this to a texture
         int width, height;
@@ -650,23 +610,14 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         prog->bind();
         glActiveTexture(GL_TEXTURE0);
-        if (texnum == 0)
-            glBindTexture(GL_TEXTURE_2D, CS_tex_B);
-        else
-            glBindTexture(GL_TEXTURE_2D, CS_tex_A);
+        glBindTexture(GL_TEXTURE_2D, CS_tex_A);
 
         glBindVertexArray(VertexArrayIDScreen);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         prog->unbind();
-        
-		/*if (outFile)
-			writeOut(outFile, ssbo_CPUMEM.pixels);
-		else 
-			cout << "error writing file" << endl;*/
 
 		 double frametime = get_last_elapsed_time();
 		 cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
-		// update(frametime);
 	}
 
 };
