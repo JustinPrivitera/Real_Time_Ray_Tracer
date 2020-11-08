@@ -25,8 +25,8 @@ layout (std430, binding=0) volatile buffer shader_data
 	vec4 llc_minus_campos;
 	vec4 camera_location;
 	vec4 background; // represents the background color
+	vec4 light_pos; // for point lights only
 	
-	// vec4 light_pos;
 	vec4 simple_shapes[NUM_SHAPES][3];
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
@@ -36,19 +36,17 @@ layout (std430, binding=0) volatile buffer shader_data
 
 uniform int sizeofbuffer;
 
-float sphere_eval_ray(vec3 dir, int shape_index)
+float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
 
 	vec3 center = simple_shapes[shape_index][0].xyz;
 	float radius = simple_shapes[shape_index][0].w;
 
-	vec3 campos = camera_location.xyz;
+	vec3 pos_minus_center = pos - center;
 
-	vec3 campos_minus_center = campos - center;
+	float dot_of_stuff = dot(dir, pos_minus_center);
 
-	float dot_of_stuff = dot(dir, campos_minus_center);
-
-	float del = dot_of_stuff * dot_of_stuff - dot(campos_minus_center, campos_minus_center) + radius * radius;
+	float del = dot_of_stuff * dot_of_stuff - dot(pos_minus_center, pos_minus_center) + radius * radius;
 	
 
 	if (del < 0)
@@ -84,29 +82,56 @@ float sphere_eval_ray(vec3 dir, int shape_index)
 	return -1;
 }
 
-float plane_eval_ray(vec3 dir, int shape_index)
+float plane_eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
 	vec3 normal = simple_shapes[shape_index][0].xyz;
 	float denom = dot(normal, dir);
 	if (denom < 0.001 && denom > -0.001)
 		return -1;
 	vec3 p0 = simple_shapes[shape_index][1].xyz;
-	return dot(normal, p0 - camera_location.xyz) / denom;
+	return dot(normal, p0 - pos) / denom;
 }
 
-float eval_ray(vec3 dir, int shape_index)
+float eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
 	int shape_id = int(simple_shapes[shape_index][2].w);
 	if (shape_id == SPHERE_ID)
 	{
-		return sphere_eval_ray(dir, shape_index);
+		return sphere_eval_ray(pos, dir, shape_index);
 	}
 	if (shape_id == PLANE_ID)
 	{
-		return plane_eval_ray(dir, shape_index);
+		return plane_eval_ray(pos, dir, shape_index);
 	}
 	// other shapes?
 	return -1;
+}
+
+bool shadow_ray(vec3 pos, int shape_index)
+{
+	double t;
+
+	vec3 l = normalize(light_pos.xyz - pos);
+	// new ray with p = pos and dir = l
+
+	for (int i = 0; i < NUM_SHAPES; i ++)
+	{
+		t = eval_ray(pos, l, i);
+		if (i == shape_index)
+		{
+			if (t > 0.0001)
+				return false; // we are in shadow
+		}
+		else
+			if (t > 0)
+				return false; // we are in shadow
+	}
+	return true;
+}
+
+vec3 sphere_compute_normal(vec3 pos, int shape_index)
+{
+	return normalize(pos - simple_shapes[shape_index][0].xyz);
 }
 
 void main()
@@ -128,7 +153,7 @@ void main()
 
 	for (int i = 0; i < NUM_SHAPES; i ++)
 	{
-		res_t = eval_ray(dir, i);
+		res_t = eval_ray(camera_location.xyz, dir, i);
 		if (res_t > 0)
 		{
 			if (res_t < t || t < 0)
@@ -144,8 +169,36 @@ void main()
 	}
 	else // ray intersected something; we get it's color and write out
 	{
-		pixels[x][y] = simple_shapes[ind][2];
-		// pixels[x][y] = vec4(0);
+		// ok it'd be nice to have default code for no light sources
+		// pixels[x][y] = simple_shapes[ind][2];
+
+		// I guess we assume there is a light source for now
+		vec3 curr_pos = camera_location.xyz + t * dir;
+		bool lit = shadow_ray(curr_pos, ind);
+		int shape_id = int(simple_shapes[ind][2].w);
+		vec3 normal;
+		if (shape_id == SPHERE_ID)
+		{
+			normal = sphere_compute_normal(curr_pos, ind);
+		}
+		else if (shape_id == PLANE_ID)
+		{
+			normal = simple_shapes[ind][0].xyz;
+		}
+		else
+		{
+			// uh oh
+		}
+
+		if (lit)
+		{
+			vec3 l = normalize(light_pos.xyz - curr_pos);
+			pixels[x][y] = vec4(simple_shapes[ind][2].xyz * clamp(dot(normal, l), 0, 1), 0);
+		}
+		else
+		{
+			pixels[x][y] = vec4(0); // we are in shadow
+		}
 	}
 
 	return;

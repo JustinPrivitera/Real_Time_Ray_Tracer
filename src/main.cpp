@@ -39,7 +39,7 @@ public:
 	vec4 llc_minus_campos;
 	vec4 camera_location;
 	vec4 background; // represents the background color
-	// vec4 light_pos;
+	vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][3];
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
@@ -185,6 +185,7 @@ public:
 	vec3 vertical;
 	vec3 llc_minus_campos;
 	vec3 camera_location;
+	// vec3 light_pos;
 	// end
 
 	// build ray trace camera
@@ -381,7 +382,11 @@ public:
 		ssbo_CPUMEM.w = ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec4();
 		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
 		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
+		// maybe there is a better place to store these important default values...
+		// instead of buried in computeInitGeom
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
+		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+
 		for (int i = 0; i < WIDTH; i ++)
 		{
 			for (int j = 0; j < HEIGHT; j ++)
