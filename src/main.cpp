@@ -28,6 +28,7 @@ using namespace glm;
 #define HEIGHT 480
 #define NUM_SHAPES 3
 #define ASPECT_RATIO 1.333333 // 1.777777 - fullscreen
+#define VERT_ASPECT_RATIO 1.0
 
 class ssbo_data
 {
@@ -398,14 +399,6 @@ public:
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
 
-		// for (int i = 0; i < WIDTH; i ++)
-		// {
-		// 	for (int j = 0; j < HEIGHT; j ++)
-		// 	{
-		// 		ssbo_CPUMEM.pixels[i][j] = vec4();
-		// 	}
-		// }
-
 		// must pack simple shapes into buffer
 		for (int i = 0; i < NUM_SHAPES; i ++)
 		{
@@ -567,17 +560,13 @@ public:
 		v = normalize(cross(w, u));
 
 		horizontal = ASPECT_RATIO * u;
-		vertical = 1.0 * v; // 1.0 b/c length of up vector
+		vertical = VERT_ASPECT_RATIO * v;
 
 		// llc = rt_camera.location - 0.5 * (horizontal + vertical) - w;
 
 		llc_minus_campos = -0.5 * (horizontal + vertical) - w;
 
 		camera_location = rt_camera.location;
-
-		// if i want to move gemoetry then i need the geometry buffer
-
-		// copies of the SSBO data since these values will change each frame
 
 		compute();
 

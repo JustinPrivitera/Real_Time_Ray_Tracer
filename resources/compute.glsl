@@ -38,6 +38,18 @@ layout (std430, binding = 0) volatile buffer shader_data
 
 uniform int sizeofbuffer;
 
+float random(vec2 st) 
+{
+	return fract(
+		sin(
+			dot(
+				st.xy,
+				vec2(12.9898,78.233)
+				)
+			)
+		* 43758.5453123);
+}
+
 float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
 
@@ -136,21 +148,9 @@ vec3 sphere_compute_normal(vec3 pos, int shape_index)
 	return normalize(pos - simple_shapes[shape_index][0].xyz);
 }
 
-void main()
+vec4 phong(vec3 dir) // phong diffuse lighting
 {
-	// uint index = gl_GlobalInvocationID.x;
-
-	uint x = gl_GlobalInvocationID.x;
-	uint y = gl_GlobalInvocationID.y;
-	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
-
 	vec4 result_color;
-
-	// ray direction calculation
-	float hp = float(x) / WIDTH;
-	float vp = float(y) / HEIGHT;
-	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
-
 	// basic ray casting
 	float t = -1;
 	float res_t;
@@ -205,6 +205,24 @@ void main()
 			result_color = vec4(0); // we are in shadow
 		}
 	}
+	return result_color;
+}
+
+void main()
+{
+	// uint index = gl_GlobalInvocationID.x;
+
+	uint x = gl_GlobalInvocationID.x;
+	uint y = gl_GlobalInvocationID.y;
+	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+
+	// ray direction calculation
+	float hp = float(x) / WIDTH;
+	float vp = float(y) / HEIGHT;
+	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+
+	vec4 result_color = phong(dir);
+
 	float gamma = 1/2.2; // for gamma correction
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
