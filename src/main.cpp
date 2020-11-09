@@ -27,6 +27,7 @@ using namespace glm;
 #define WIDTH 640
 #define HEIGHT 480
 #define NUM_SHAPES 3
+#define ASPECT_RATIO 1.333333 // 1.777777 - fullscreen
 
 class ssbo_data
 {
@@ -137,25 +138,6 @@ vec4 clamp(vec4 v, float min, float max)
 	return vec4(clamp(v.x, min, max), clamp(v.y, min, max), clamp(v.z, min, max), clamp(v.w, min, max));
 }
 
-// void writePixel(ostream& out, vec4 color)
-// {
-// 	// float gamma = 2.2; // for gamma correction TODO apply in shader instead
-// 	// color = pow_vec(color, vec3(1/gamma));
-// 	color = clamp(color, 0.0, 1.0);
-// 	out << int(color.x * 255) << "\t" << int(color.y * 255) << "\t" << int(color.z * 255) << " \n";
-// }
-
-// // writes the pixels to a ppm file
-// void writeOut(ostream& out, vec4 pixels[WIDTH][HEIGHT]) 
-// {
-// 	out << "P3" << "\n";
-// 	out << WIDTH << "\t" << HEIGHT << "\n";
-// 	out << "255" << "\n";
-// 	for (int y = 0; y < HEIGHT; y ++)
-// 		for (int x = 0; x < WIDTH; x ++)
-// 			writePixel(out, pixels[x][y]);
-// }
-
 class scene
 {
 public:
@@ -191,9 +173,8 @@ public:
 	// build ray trace camera
 	vec3 location = vec3(0,0,14);
 	vec3 up = vec3(0,1,0);
-	vec3 right = vec3(1.33333,0,0);
-	vec3 look_at = vec3(0,0,0);
-	camera rt_camera = camera(location, up ,right, look_at);
+	vec3 look_towards = vec3(0,0,1);
+	camera rt_camera = camera(location, up, look_towards);
 	// end
 
 	WindowManager * windowManager = nullptr;
@@ -581,12 +562,12 @@ public:
 		if (mycam.s == 1) 
 			rt_camera.location.z += 0.1;
 
-		w = normalize(rt_camera.location - rt_camera.look_at);
+		w = rt_camera.look_towards;
 		u = normalize(cross(rt_camera.up, w));
 		v = normalize(cross(w, u));
 
-		horizontal = length(rt_camera.right) * u;
-		vertical = length(rt_camera.up) * v; // hehe the -1 is back
+		horizontal = ASPECT_RATIO * u;
+		vertical = 1.0 * v; // 1.0 b/c length of up vector
 
 		// llc = rt_camera.location - 0.5 * (horizontal + vertical) - w;
 
