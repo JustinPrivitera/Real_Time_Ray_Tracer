@@ -627,13 +627,13 @@ public:
 			rt_camera.location += 0.1 * right;
 		if (mycam.e == 1)
 		{
-			rot_y += 0.01;
+			rot_y += 0.03;
 			rotate = true;
 		}
 			
 		if (mycam.q == 1)
 		{
-			rot_y -= 0.01;
+			rot_y -= 0.03;
 			rotate = true;
 		}
 
