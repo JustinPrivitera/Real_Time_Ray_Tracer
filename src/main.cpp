@@ -24,10 +24,16 @@ using namespace std;
 using namespace glm;
 // shared_ptr<Shape> shape;
 
+// resolution
 #define WIDTH 640
 #define HEIGHT 480
+
+// number of scene objects
 #define NUM_SHAPES 3
-#define ASPECT_RATIO 1.333333 // 1.777777 - fullscreen
+
+// aspect ratio constants
+#define ASPECT_RATIO 1.333333 // horizontal
+#define FULLSCREEN_ASPECT_RATIO 1.777777 // horizontal
 #define VERT_ASPECT_RATIO 1.0
 
 class ssbo_data
@@ -64,10 +70,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, m;
+	int w, a, s, d, m, f;
 	fake_camera()
 	{
-		w = a = s = d = m = 0;
+		w = a = s = d = m = f = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -159,6 +165,8 @@ class Application : public EventCallbacks
 {
 
 public:
+
+	float aspect_ratio = ASPECT_RATIO;
 
 	scene myscene = init_scene();
 
@@ -278,14 +286,21 @@ public:
 			mycam.d = 0;
 		}
 
+		// toggle lighting mode
 		if (key == GLFW_KEY_M && action == GLFW_PRESS)
 		{
 			mycam.m = !mycam.m;
 		}
-		// if (key == GLFW_KEY_M && action == GLFW_RELEASE)
-		// {
-		// 	mycam.m = 0;
-		// }
+
+		// toggle fullscreen aspect ratio
+		if (key == GLFW_KEY_F && action == GLFW_PRESS)
+		{
+			mycam.f = !mycam.f;
+			if (!mycam.f)
+				aspect_ratio = ASPECT_RATIO;
+			else
+				aspect_ratio = FULLSCREEN_ASPECT_RATIO;
+		}
 	}
 
 	// callback for the mouse when clicked move the triangle when helper functions
@@ -586,15 +601,15 @@ public:
 		if (mycam.s == 1) 
 			rt_camera.location.z += 0.1;
 		if (mycam.m)
-			ssbo_CPUMEM.mode.x = 0;
-		else
 			ssbo_CPUMEM.mode.x = 1;
+		else
+			ssbo_CPUMEM.mode.x = 0;
 
 		w = rt_camera.look_towards;
 		u = normalize(cross(rt_camera.up, w));
 		v = normalize(cross(w, u));
 
-		horizontal = ASPECT_RATIO * u;
+		horizontal = aspect_ratio * u;
 		vertical = VERT_ASPECT_RATIO * v;
 
 		// llc = rt_camera.location - 0.5 * (horizontal + vertical) - w;
