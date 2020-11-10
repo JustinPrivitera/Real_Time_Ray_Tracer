@@ -626,11 +626,16 @@ public:
 		if (mycam.d == 1)
 			rt_camera.location += 0.1 * right;
 		if (mycam.e == 1)
+		{
 			rot_y += 0.01;
 			rotate = true;
+		}
+			
 		if (mycam.q == 1)
+		{
 			rot_y -= 0.01;
 			rotate = true;
+		}
 
 		if (rotate) {
 			glm::mat4 R = glm::rotate(glm::mat4(1), rot_y, glm::vec3(0, 1, 0));
