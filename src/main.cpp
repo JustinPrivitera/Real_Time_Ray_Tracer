@@ -290,6 +290,7 @@ public:
 		if (key == GLFW_KEY_M && action == GLFW_PRESS)
 		{
 			mycam.m = !mycam.m;
+			ssbo_CPUMEM.mode.x = mycam.m;
 		}
 
 		// toggle fullscreen aspect ratio
@@ -600,10 +601,10 @@ public:
 			rt_camera.location.z -= 0.1;
 		if (mycam.s == 1) 
 			rt_camera.location.z += 0.1;
-		if (mycam.m)
-			ssbo_CPUMEM.mode.x = 1;
-		else
-			ssbo_CPUMEM.mode.x = 0;
+		if (mycam.a == 1)
+			rt_camera.location.x -= 0.1;
+		if (mycam.d == 1)
+			rt_camera.location.x += 0.1;
 
 		w = rt_camera.look_towards;
 		u = normalize(cross(rt_camera.up, w));
