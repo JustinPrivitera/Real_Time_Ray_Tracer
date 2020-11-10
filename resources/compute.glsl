@@ -206,7 +206,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 			vec3 l = normalize(light_pos.xyz - curr_pos);
 			result_color = vec4(
 				simple_shapes[ind][2].xyz
-					* clamp(dot(normal, l), PHONG_SHADOW_MIN, 1),
+					* clamp(dot(normal, l), PHONG_SHADOW_MIN, 1.0),
 				0);
 		}
 		else

@@ -19,6 +19,7 @@
     <ClInclude Include="Shape.h" />
     <ClInclude Include="tiny_obj_loader.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="camera.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ext">

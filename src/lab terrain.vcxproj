@@ -28,6 +28,7 @@
     <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="camera.h" />
     <ClInclude Include="GLSL.h" />
     <ClInclude Include="MatrixStack.h" />
     <ClInclude Include="Program.h" />

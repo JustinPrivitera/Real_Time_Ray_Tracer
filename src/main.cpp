@@ -70,10 +70,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, m, f;
+	int w, a, s, d, m, f, q, e;
 	fake_camera()
 	{
-		w = a = s = d = m = f = 0;
+		w = a = s = d = m = f = q = e = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -286,6 +286,23 @@ public:
 			mycam.d = 0;
 		}
 
+		if (key == GLFW_KEY_Q && action == GLFW_PRESS)
+		{
+			mycam.q = 1;
+		}
+		if (key == GLFW_KEY_Q && action == GLFW_RELEASE)
+		{
+			mycam.q = 0;
+		}
+		if (key == GLFW_KEY_E && action == GLFW_PRESS)
+		{
+			mycam.e = 1;
+		}
+		if (key == GLFW_KEY_E && action == GLFW_RELEASE)
+		{
+			mycam.e = 0;
+		}
+
 		// toggle lighting mode
 		if (key == GLFW_KEY_M && action == GLFW_PRESS)
 		{
@@ -488,6 +505,7 @@ public:
 		{
 			GLSL::printShaderInfoLog(computeShader);
 			std::cout << "Error compiling compute shader " << std::endl;
+			system("pause");
 			exit(1);
 		}
 
@@ -595,16 +613,36 @@ public:
 		heightshader->addAttribute("vertTex");
 	}
 
+	void update_camera() {
+		float rot_y = 0.0;
+		bool rotate = false;
+		vec3 right = normalize(cross(rt_camera.up, rt_camera.look_towards));
+		if (mycam.w == 1)
+			rt_camera.location -= 0.1 * rt_camera.look_towards;
+		if (mycam.s == 1)
+			rt_camera.location += 0.1 * rt_camera.look_towards;
+		if (mycam.a == 1)
+			rt_camera.location -= 0.1 * right;
+		if (mycam.d == 1)
+			rt_camera.location += 0.1 * right;
+		if (mycam.e == 1)
+			rot_y += 0.01;
+			rotate = true;
+		if (mycam.q == 1)
+			rot_y -= 0.01;
+			rotate = true;
+
+		if (rotate) {
+			glm::mat4 R = glm::rotate(glm::mat4(1), rot_y, glm::vec3(0, 1, 0));
+			glm::vec4 dir = vec4(rt_camera.look_towards, 0);
+			dir = dir * R;
+			rt_camera.look_towards = vec3(dir.x, dir.y, dir.z);
+		}
+	}
+
 	void render()
 	{
-		if (mycam.w == 1) 
-			rt_camera.location.z -= 0.1;
-		if (mycam.s == 1) 
-			rt_camera.location.z += 0.1;
-		if (mycam.a == 1)
-			rt_camera.location.x -= 0.1;
-		if (mycam.d == 1)
-			rt_camera.location.x += 0.1;
+		update_camera();
 
 		w = rt_camera.look_towards;
 		u = normalize(cross(rt_camera.up, w));
