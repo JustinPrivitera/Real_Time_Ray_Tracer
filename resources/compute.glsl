@@ -36,6 +36,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// vec4 pixels[WIDTH][HEIGHT];
+	vec4 rand_buffer[WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -213,19 +214,25 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 
 vec3 get_pt_within_unit_sphere()
 {
-	vec2 seed = current_time.xy;
+	// vec2 seed = current_time.xy;
 
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
 
-	vec2 seed1 = vec2(x * seed.x, seed.x + seed.y);
-	vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
-	vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
+	// vec2 seed1 = vec2(pow(x,y), pow(y,x/y));
+	// vec2 seed2 = vec2(seed1.x * pow(x,y - x), seed1.y * pow(y,x));
+	// vec2 seed3 = vec2(seed2.y * pow(y,x + y), seed2.x + pow(y,x));
 
-	return normalize(vec3(
-				random(seed1) * 2 - 1,
-				random(seed2) * 2 - 1,
-				random(seed3) * 2 - 1));
+	// vec2 seed1 = vec2(x * seed.x, seed.x + seed.y);
+	// vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
+	// vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
+
+	// return normalize(vec3(
+	// 			random(seed1) * 2 - 1,
+	// 			random(seed2) * 2 - 1,
+	// 			random(seed3) * 2 - 1));
+
+	return normalize(vec3(rand_buffer[x][y].x, rand_buffer[x][y].y, rand_buffer[x][y].z));
 }
 
 // no more recursion :(
@@ -286,10 +293,13 @@ void foggy(inout vec4 array[3], int depth)
 		{
 			// other shapes... this is not yet implemented
 		}
+
+		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
 		array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
+		// array[2] = vec4(R, ind);
 		// return attenuation * foggy(curr_pos, get_pt_within_unit_sphere() + normal, depth - 1, ind);
 	}
 	else

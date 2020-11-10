@@ -47,6 +47,7 @@ public:
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 	// vec4 pixels[WIDTH][HEIGHT];
+	// vec4 rand_buffer[WIDTH][HEIGHT];
 };
 
 
@@ -429,6 +430,14 @@ public:
 			}
 		}
 
+		// for (int i = 0; i < WIDTH; i ++)
+		// {
+		// 	for (int j = 0; j < HEIGHT; j ++)
+		// 	{
+		// 		ssbo_CPUMEM.rand_buffer[i][j] = vec4(randf(), randf(), randf(), 0);
+		// 	}
+		// }
+
 		glGenBuffers(1, &ssbo_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
@@ -479,6 +488,14 @@ public:
 		ssbo_CPUMEM.vertical = vec4(vertical, 0);
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
 		ssbo_CPUMEM.camera_location = vec4(camera_location, 0);
+
+		// for (int i = 0; i < WIDTH; i ++)
+		// {
+		// 	for (int j = 0; j < HEIGHT; j ++)
+		// 	{
+		// 		ssbo_CPUMEM.rand_buffer[i][j] = vec4(randf(), randf(), randf(), 0);
+		// 	}
+		// }
 
 		GLuint block_index = 1;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
