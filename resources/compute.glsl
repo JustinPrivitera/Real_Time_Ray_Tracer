@@ -4,7 +4,7 @@
 
 #define WIDTH 640
 #define HEIGHT 480
-#define RECURSION_DEPTH 50 // this isn't used yet
+#define RECURSION_DEPTH 50
 #define NUM_SHAPES 3
 
 #define SPHERE_ID 1
@@ -19,7 +19,7 @@ layout(rgba32f, binding = 0) uniform image2D img_output;									//output image
 
 layout (std430, binding = 0) volatile buffer shader_data
 {
-	vec4 current_time;
+	vec4 mode;
 	// TODO add lighting mode and maybe some other selections
   	vec4 w;
 	vec4 u;
@@ -239,9 +239,8 @@ vec3 get_pt_within_unit_sphere()
 	// return normalize(vec3(rand_buffer[x][y].x, rand_buffer[x][y].y, rand_buffer[x][y].z));
 }
 
-// no more recursion :(
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void foggy(inout vec4 array[3], int depth)
+void foggy_helper(inout vec4 array[3], int depth)
 // vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	if (depth <= 0)
@@ -309,34 +308,15 @@ void foggy(inout vec4 array[3], int depth)
 		// array[2] = vec4(R, ind);
 		// return attenuation * foggy(curr_pos, get_pt_within_unit_sphere() + normal, depth - 1, ind);
 	}
-	else
+	else // return background color
 	{
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion
-		// return background;
 	}
 }
 
-//////////////////////////////////////////////
-
-void main()
+vec4 foggy(vec3 dir)
 {
-	// uint index = gl_GlobalInvocationID.x;
-
-	uint x = gl_GlobalInvocationID.x;
-	uint y = gl_GlobalInvocationID.y;
-	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
-
-	// ray direction calculation
-	float hp = float(x) / WIDTH;
-	float vp = float(y) / HEIGHT;
-	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
-
-	// get color based on chosen lighting algorithm
-	
-	// vec4 result_color = phong(dir);
-
-	// foggy non-recursive set up
 	vec4 result_color = vec4(1);
 	vec4 foggy_buffer[3];
 
@@ -347,13 +327,35 @@ void main()
 	int i = RECURSION_DEPTH;
 	while (i > 0)
 	{
-		foggy(foggy_buffer, i);
+		foggy_helper(foggy_buffer, i);
 		result_color = result_color * foggy_buffer[0];
 		if (foggy_buffer[1].w == 1) // we hit the background and the stop bit was set
 			break;
 		// result_color = result_color * foggy(camera_location.xyz, dir, i, -1);
 		i -= 1;
 	}
+	return result_color;
+}
+
+//////////////////////////////////////////////
+
+void main()
+{
+	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+
+	vec4 result_color = vec4(1);
+	
+	// ray direction calculation
+	float hp = float(pixel_coords.x) / WIDTH;
+	float vp = float(pixel_coords.y) / HEIGHT;
+	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+
+	// get color based on chosen lighting algorithm
+	
+	if (mode.x == 0)
+		result_color = phong(dir);
+	else
+		result_color = foggy(dir);
 
 	// gamma correction
 	float gamma = 1/2.2;
