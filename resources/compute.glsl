@@ -219,6 +219,10 @@ vec3 get_pt_within_unit_sphere()
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
 
+	vec2 seed1 = vec2(sin(x) + cos(y), sin(y) / cos(x));
+	vec2 seed2 = vec2(cos(y) - 1/cos(y), cos(x) - sin(y));
+	vec2 seed3 = vec2(sin(y), cos(x) * sin(x));
+
 	// vec2 seed1 = vec2(pow(x,y), pow(y,x/y));
 	// vec2 seed2 = vec2(seed1.x * pow(x,y - x), seed1.y * pow(y,x));
 	// vec2 seed3 = vec2(seed2.y * pow(y,x + y), seed2.x + pow(y,x));
@@ -227,12 +231,12 @@ vec3 get_pt_within_unit_sphere()
 	// vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
 	// vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
 
-	// return normalize(vec3(
-	// 			random(seed1) * 2 - 1,
-	// 			random(seed2) * 2 - 1,
-	// 			random(seed3) * 2 - 1));
+	return normalize(vec3(
+				random(seed1) * 2 - 1,
+				random(seed2) * 2 - 1,
+				random(seed3) * 2 - 1));
 
-	return normalize(vec3(rand_buffer[x][y].x, rand_buffer[x][y].y, rand_buffer[x][y].z));
+	// return normalize(vec3(rand_buffer[x][y].x, rand_buffer[x][y].y, rand_buffer[x][y].z));
 }
 
 // no more recursion :(
@@ -297,7 +301,10 @@ void foggy(inout vec4 array[3], int depth)
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
 		array[0] = attenuation;
+		// vec3 new_dir = get_pt_within_unit_sphere() + normal;
+		// array[1] = vec4(curr_pos + 0.0001 * new_dir, 0);
 		array[1] = vec4(curr_pos, 0);
+		// array[2] = vec4(new_dir, ind);
 		array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
 		// array[2] = vec4(R, ind);
 		// return attenuation * foggy(curr_pos, get_pt_within_unit_sphere() + normal, depth - 1, ind);
@@ -327,26 +334,26 @@ void main()
 
 	// get color based on chosen lighting algorithm
 	
-	vec4 result_color = phong(dir);
+	// vec4 result_color = phong(dir);
 
-	// // foggy non-recursive set up
-	// vec4 result_color = vec4(1);
-	// vec4 foggy_buffer[3];
+	// foggy non-recursive set up
+	vec4 result_color = vec4(1);
+	vec4 foggy_buffer[3];
 
-	// foggy_buffer[1].xyz = camera_location.xyz;
-	// foggy_buffer[1].w = 0; // stop bit is set to 0
-	// foggy_buffer[2] = vec4(dir, -1);
+	foggy_buffer[1].xyz = camera_location.xyz;
+	foggy_buffer[1].w = 0; // stop bit is set to 0
+	foggy_buffer[2] = vec4(dir, -1);
 
-	// int i = RECURSION_DEPTH;
-	// while (i > 0)
-	// {
-	// 	foggy(foggy_buffer, i);
-	// 	result_color = result_color * foggy_buffer[0];
-	// 	if (foggy_buffer[1].w == 1) // we hit the background and the stop bit was set
-	// 		break;
-	// 	// result_color = result_color * foggy(camera_location.xyz, dir, i, -1);
-	// 	i -= 1;
-	// }
+	int i = RECURSION_DEPTH;
+	while (i > 0)
+	{
+		foggy(foggy_buffer, i);
+		result_color = result_color * foggy_buffer[0];
+		if (foggy_buffer[1].w == 1) // we hit the background and the stop bit was set
+			break;
+		// result_color = result_color * foggy(camera_location.xyz, dir, i, -1);
+		i -= 1;
+	}
 
 	// gamma correction
 	float gamma = 1/2.2;
