@@ -11,6 +11,8 @@
 #define PLANE_ID 5
 // others
 
+#define PHONG_SHADOW_MIN 0.03
+
 // one shader unit per pixel
 
 layout(local_size_x = 1, local_size_y = 1) in;
@@ -202,11 +204,15 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 		if (lit)
 		{
 			vec3 l = normalize(light_pos.xyz - curr_pos);
-			result_color = vec4(simple_shapes[ind][2].xyz * clamp(dot(normal, l), 0, 1), 0);
+			result_color = vec4(
+				simple_shapes[ind][2].xyz
+					* clamp(dot(normal, l), PHONG_SHADOW_MIN, 1),
+				0);
 		}
 		else
 		{
-			result_color = vec4(0); // we are in shadow
+			// result_color = vec4(0); // we are in shadow
+			result_color = vec4(simple_shapes[ind][2].xyz * vec3(PHONG_SHADOW_MIN), 0);
 		}
 	}
 	return result_color;
@@ -298,15 +304,10 @@ void foggy_helper(inout vec4 array[3], int depth)
 		}
 
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
-		// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
 		array[0] = attenuation;
-		// vec3 new_dir = get_pt_within_unit_sphere() + normal;
-		// array[1] = vec4(curr_pos + 0.0001 * new_dir, 0);
 		array[1] = vec4(curr_pos, 0);
-		// array[2] = vec4(new_dir, ind);
 		array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
 		// array[2] = vec4(R, ind);
-		// return attenuation * foggy(curr_pos, get_pt_within_unit_sphere() + normal, depth - 1, ind);
 	}
 	else // return background color
 	{

@@ -637,8 +637,8 @@ public:
         glDrawArrays(GL_TRIANGLES, 0, 6);
         prog->unbind();
 
-		 double frametime = get_last_elapsed_time();
-		 cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
+		double frametime = get_last_elapsed_time();
+		cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
 	}
 
 };
