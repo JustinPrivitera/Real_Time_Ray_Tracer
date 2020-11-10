@@ -18,7 +18,9 @@ layout(local_size_x = 1, local_size_y = 1) in;
 layout(rgba32f, binding = 0) uniform image2D img_output;									//output image
 
 layout (std430, binding = 0) volatile buffer shader_data
-{ 
+{
+	vec4 current_time;
+	// TODO add lighting mode and maybe some other selections
   	vec4 w;
 	vec4 u;
 	vec4 v;
@@ -156,6 +158,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	float res_t;
 	int ind = -1;
 
+	// the following math just gets the closest collision
 	for (int i = 0; i < NUM_SHAPES; i ++)
 	{
 		res_t = eval_ray(camera_location.xyz, dir, i);
@@ -175,7 +178,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	else // ray intersected something; we get it's color and write out
 	{
 		// ok it'd be nice to have default code for no light sources
-		// pixels[x][y] = simple_shapes[ind][2];
+		// result_color = simple_shapes[ind][2];
 
 		// I guess we assume there is a light source for now
 		vec3 curr_pos = camera_location.xyz + t * dir;
@@ -192,7 +195,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 		}
 		else
 		{
-			// uh oh
+			// other shapes... this is not yet implemented
 		}
 
 		if (lit)
@@ -208,6 +211,97 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	return result_color;
 }
 
+vec3 get_pt_within_unit_sphere()
+{
+	vec2 seed = current_time.xy;
+
+	uint x = gl_GlobalInvocationID.x;
+	uint y = gl_GlobalInvocationID.y;
+
+	vec2 seed1 = vec2(x * seed.x, seed.x + seed.y);
+	vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
+	vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
+
+	return normalize(vec3(
+				random(seed1) * 2 - 1,
+				random(seed2) * 2 - 1,
+				random(seed3) * 2 - 1));
+}
+
+// no more recursion :(
+// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
+void foggy(inout vec4 array[3], int depth)
+// vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
+{
+	if (depth <= 0)
+		array[0] = vec4(0);
+
+	vec3 pos = array[1].xyz;
+	vec3 dir = array[2].xyz;
+	int last_ind = int(array[2].w);
+
+	float t = -1;
+	float res_t;
+	int ind = -1;
+
+	// the following math just gets the closest collision
+	for (int i = 0; i < NUM_SHAPES; i ++)
+	{
+		res_t = eval_ray(pos, dir, i);
+		if (i == last_ind)
+		{
+			if (res_t > 0.0001)
+			{
+				if (res_t < t || t < 0)
+				{
+					t = res_t;
+					ind = i;
+				}
+			}
+		}
+		else
+		{
+			if (res_t > 0)
+			{
+				if (res_t < t || t < 0)
+				{
+					t = res_t;
+					ind = i;
+				}
+			}
+		}
+	}
+
+	if (ind != -1) // we must have hit something
+	{
+		vec4 attenuation = simple_shapes[ind][2];
+		vec3 curr_pos = camera_location.xyz + t * dir;
+		int id = int(attenuation.w);
+		vec3 normal;
+		if (id == SPHERE_ID)
+			normal = sphere_compute_normal(curr_pos, ind);
+		else if (id == PLANE_ID)
+			normal = simple_shapes[ind][0].xyz;
+		else
+		{
+			// other shapes... this is not yet implemented
+		}
+		// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
+		array[0] = attenuation;
+		array[1] = vec4(curr_pos, 0);
+		array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
+		// return attenuation * foggy(curr_pos, get_pt_within_unit_sphere() + normal, depth - 1, ind);
+	}
+	else
+	{
+		array[0] = background;
+		array[1].w = 1; // this means stop the recursion
+		// return background;
+	}
+}
+
+//////////////////////////////////////////////
+
 void main()
 {
 	// uint index = gl_GlobalInvocationID.x;
@@ -221,11 +315,34 @@ void main()
 	float vp = float(y) / HEIGHT;
 	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
+	// get color based on chosen lighting algorithm
+	
 	vec4 result_color = phong(dir);
 
-	float gamma = 1/2.2; // for gamma correction
+	// // foggy non-recursive set up
+	// vec4 result_color = vec4(1);
+	// vec4 foggy_buffer[3];
+
+	// foggy_buffer[1].xyz = camera_location.xyz;
+	// foggy_buffer[1].w = 0; // stop bit is set to 0
+	// foggy_buffer[2] = vec4(dir, -1);
+
+	// int i = RECURSION_DEPTH;
+	// while (i > 0)
+	// {
+	// 	foggy(foggy_buffer, i);
+	// 	result_color = result_color * foggy_buffer[0];
+	// 	if (foggy_buffer[1].w == 1) // we hit the background and the stop bit was set
+	// 		break;
+	// 	// result_color = result_color * foggy(camera_location.xyz, dir, i, -1);
+	// 	i -= 1;
+	// }
+
+	// gamma correction
+	float gamma = 1/2.2;
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
+	// write image
 	imageStore(img_output, pixel_coords, result_color);
 	return;
 }

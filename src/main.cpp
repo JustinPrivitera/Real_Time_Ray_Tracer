@@ -33,6 +33,7 @@ using namespace glm;
 class ssbo_data
 {
 public:
+	vec4 current_time;
 	vec4 w;
 	vec4 u;
 	vec4 v;
@@ -391,6 +392,7 @@ public:
 		std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
 		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
 
+		ssbo_CPUMEM.current_time = vec4(glfwGetTime());
 		ssbo_CPUMEM.w = ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec4();
 		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
 		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
@@ -469,6 +471,7 @@ public:
 	{
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
+		ssbo_CPUMEM.current_time = vec4(glfwGetTime());
 		ssbo_CPUMEM.w = vec4(w, 0);
 		ssbo_CPUMEM.u = vec4(u, 0);
 		ssbo_CPUMEM.v = vec4(v, 0);
