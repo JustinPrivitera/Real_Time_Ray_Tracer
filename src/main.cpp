@@ -217,28 +217,28 @@ public:
 		float radius = 2;
 		pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
 		sphere* mysphere = new sphere(center,radius,color);
-		mysphere->reflectivity = 0.005;
+		mysphere->reflectivity = 0.05;
 
 		// sphere
 		center = vec3(4,-0.5,-2);
 		radius = 3.5;
 		color = pigment(vec3(0.8,0.8,0.1));
 		sphere* mysphere2 = new sphere(center,radius,color);
-		mysphere2->reflectivity = 0.02;
+		mysphere2->reflectivity = 0.2;
 
 		// sphere
 		center = vec3(-4.5,4,-15);
 		radius = 4;
 		color = pigment(vec3(0.2,0.8,0.1));
 		sphere* mysphere3 = new sphere(center,radius,color);
-		mysphere3->reflectivity = 0.05;
+		mysphere3->reflectivity = 0.5;
 
 		// sphere
 		center = vec3(-8,-1,2);
 		radius = 1.5;
 		color = pigment(vec3(1,1,1));
 		sphere* mysphere4 = new sphere(center,radius,color);
-		mysphere4->reflectivity = 0.2;
+		mysphere4->reflectivity = 0.8;
 
 		// plane
 		vec3 normal = vec3(0, 1, 0);

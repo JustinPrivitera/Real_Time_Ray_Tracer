@@ -13,6 +13,8 @@
 
 #define PHONG_SHADOW_MIN 0.03
 
+#define REFLECTION_DEGRADATION_CONSTANT 1.1
+
 // one shader unit per pixel
 
 layout(local_size_x = 1, local_size_y = 1) in;
@@ -444,7 +446,7 @@ vec4 hybrid(vec3 dir)
 	{
 		hybrid_helper(lighting_buffer, i);
 		result_color = (result_color + c * lighting_buffer[0]) / (1 + c);
-		c = lighting_buffer[2].w;
+		c = c * REFLECTION_DEGRADATION_CONSTANT * lighting_buffer[2].w;
 		if (lighting_buffer[1].w == 1) // the stop bit was set
 			break;
 		i -= 1;
