@@ -565,7 +565,7 @@ public:
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
-		// ssbo_CPUMEM.mode = vec4(0);
+		// ssbo_CPUMEM.mode.y = get_last_elapsed_time();
 		ssbo_CPUMEM.w = vec4(w, 0);
 		ssbo_CPUMEM.u = vec4(u, 0);
 		ssbo_CPUMEM.v = vec4(v, 0);

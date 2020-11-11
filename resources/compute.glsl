@@ -219,7 +219,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 
 vec3 get_pt_within_unit_sphere()
 {
-	// vec2 seed = current_time.xy;
+	vec2 seed = vec2(mode.y, 1/ mode.y);
 
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
@@ -474,7 +474,10 @@ void main()
 
 	// gamma correction
 	float gamma = 1/2.2;
+	// gamma = 1000 * mode.y + gamma;
+
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
+
 
 	// write image
 	imageStore(img_output, pixel_coords, result_color);
