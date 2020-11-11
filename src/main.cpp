@@ -70,10 +70,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, m, f, q, e, sp, ls;
+	int w, a, s, d, m, f, q, e, sp, ls, z, c;
 	fake_camera()
 	{
-		w = a = s = d = m = f = q = e = sp = ls = 0;
+		w = a = s = d = m = f = q = e = sp = ls = z = c = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -320,6 +320,24 @@ public:
 		if (key == GLFW_KEY_E && action == GLFW_RELEASE)
 		{
 			mycam.e = 0;
+		}
+
+		// camera rotation
+		if (key == GLFW_KEY_Z && action == GLFW_PRESS)
+		{
+			mycam.z = 1;
+		}
+		if (key == GLFW_KEY_Z && action == GLFW_RELEASE)
+		{
+			mycam.z = 0;
+		}
+		if (key == GLFW_KEY_C && action == GLFW_PRESS)
+		{
+			mycam.c = 1;
+		}
+		if (key == GLFW_KEY_C && action == GLFW_RELEASE)
+		{
+			mycam.c = 0;
 		}
 
 		// toggle lighting mode
@@ -658,7 +676,9 @@ public:
 
 	void update_camera() {
 		float rot_y = 0.0;
+		float rot_x = 0.0;
 		bool rotate = false;
+		bool rotate_up_down = false;
 		// i wonder if it would be better to store this value in the camera, and update when needed?
 		vec3 right = normalize(cross(rt_camera.up, rt_camera.look_towards));
 		if (mycam.w == 1)
@@ -687,8 +707,27 @@ public:
 			rotate = true;
 		}
 
+		if (mycam.z == 1)
+		{
+			rot_x -= 0.03;
+			rotate_up_down = true;
+		}
+		if (mycam.c == 1)
+		{
+			rot_x += 0.03;
+			rotate_up_down = true;
+		}
+
 		if (rotate) {
 			glm::mat4 R = glm::rotate(glm::mat4(1), rot_y, glm::vec3(0, 1, 0));
+			glm::vec4 dir = vec4(rt_camera.look_towards, 0);
+			dir = dir * R;
+			rt_camera.look_towards = vec3(dir.x, dir.y, dir.z);
+		}
+
+		if (rotate_up_down)
+		{
+			glm::mat4 R = glm::rotate(glm::mat4(1), rot_x, glm::vec3(1, 0, 0));
 			glm::vec4 dir = vec4(rt_camera.look_towards, 0);
 			dir = dir * R;
 			rt_camera.look_towards = vec3(dir.x, dir.y, dir.z);
