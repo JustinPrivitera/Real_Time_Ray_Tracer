@@ -5,7 +5,7 @@
 #define WIDTH 640
 #define HEIGHT 480
 #define RECURSION_DEPTH 30
-#define NUM_SHAPES 5
+#define NUM_SHAPES 8
 
 #define SPHERE_ID 1
 #define PLANE_ID 5
@@ -127,31 +127,36 @@ float eval_ray(vec3 pos, vec3 dir, int shape_index)
 	return -1;
 }
 
+vec3 sphere_compute_normal(vec3 pos, int shape_index)
+{
+	return normalize(pos - simple_shapes[shape_index][0].xyz);
+}
+
 bool shadow_ray(vec3 pos, int shape_index)
 {
 	double t;
 
-	vec3 l = normalize(light_pos.xyz - pos);
+	vec3 light_vector = light_pos.xyz - pos;
+	vec3 l = normalize(light_vector);
+	float len = length(light_vector);
+	// float t_max = light_vector.x / l.x;
 	// new ray with p = pos and dir = l
 
-	for (int i = 0; i < NUM_SHAPES; i ++)
+	for (int i = 0; i < int(mode.z); i ++)
 	{
 		t = eval_ray(pos, l, i);
 		if (i == shape_index)
 		{
 			if (t > 0.0001)
-				return false; // we are in shadow
+				if (length(t * l) < len)
+					return false; // we are in shadow
 		}
 		else
 			if (t > 0)
-				return false; // we are in shadow
+				if (length(t * l) < len)
+					return false; // we are in shadow
 	}
 	return true;
-}
-
-vec3 sphere_compute_normal(vec3 pos, int shape_index)
-{
-	return normalize(pos - simple_shapes[shape_index][0].xyz);
 }
 
 vec4 phong(vec3 dir) // phong diffuse lighting
@@ -163,7 +168,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	int ind = -1;
 
 	// the following math just gets the closest collision
-	for (int i = 0; i < NUM_SHAPES; i ++)
+	for (int i = 0; i < int(mode.z); i ++)
 	{
 		res_t = eval_ray(camera_location.xyz, dir, i);
 		if (res_t > 0)
@@ -205,10 +210,14 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 		if (lit)
 		{
 			vec3 l = normalize(light_pos.xyz - curr_pos);
+			float spec = pow(clamp(dot(normalize(l - dir), normal), 0, 1), 500);
+
 			result_color = vec4(
 				simple_shapes[ind][2].xyz
 					* clamp(dot(normal, l), PHONG_SHADOW_MIN, 1.0),
 				0);
+
+			result_color += vec4(spec * 1);
 		}
 		else
 		{
@@ -262,7 +271,7 @@ void foggy_helper(inout vec4 array[3], int depth)
 	int ind = -1;
 
 	// the following math just gets the closest collision
-	for (int i = 0; i < NUM_SHAPES; i ++)
+	for (int i = 0; i < int(mode.z); i ++)
 	{
 		res_t = eval_ray(pos, dir, i);
 		if (i == last_ind)
@@ -354,7 +363,7 @@ void hybrid_helper(inout vec4 array[3], int depth)
 	int ind = -1;
 
 	// the following math just gets the closest collision
-	for (int i = 0; i < NUM_SHAPES; i ++)
+	for (int i = 0; i < int(mode.z); i ++)
 	{
 		res_t = eval_ray(pos, dir, i);
 		if (res_t > 0.001)
@@ -440,7 +449,6 @@ vec4 hybrid(vec3 dir)
 	float c = lighting_buffer[2].w;
 	vec4 result_color = lighting_buffer[0];
 
-	// if reflective, make result color = (res_col + c * hybrid) / (1 + c)
 	int i = RECURSION_DEPTH - 1;
 	while (i > 0)
 	{

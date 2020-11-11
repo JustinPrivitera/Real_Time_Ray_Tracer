@@ -29,7 +29,7 @@ using namespace glm;
 #define HEIGHT 480
 
 // number of scene objects
-#define NUM_SHAPES 5
+#define NUM_SHAPES 8
 
 // aspect ratio constants
 #define ASPECT_RATIO 1.333333 // horizontal
@@ -70,10 +70,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, m, f, q, e, sp, ls, z, c;
+	int w, a, s, d, m, f, q, e, sp, ls, z, c, p;
 	fake_camera()
 	{
-		w = a = s = d = m = f = q = e = sp = ls = z = c = 0;
+		w = a = s = d = m = f = q = e = sp = ls = z = c = p = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -167,6 +167,8 @@ class Application : public EventCallbacks
 public:
 
 	float aspect_ratio = ASPECT_RATIO;
+	int true_num_scene_objects = NUM_SHAPES - 3;
+	int light_movement = 0;
 
 	scene myscene = init_scene();
 
@@ -245,6 +247,24 @@ public:
 		float distance_from_origin = -4;
 		color = pigment(vec3(0.3,0.0,0.5));
 		plane* myplane = new plane(normal, distance_from_origin, color);
+
+		// plane
+		normal = vec3(-1, 0, 0);
+		distance_from_origin = -8;
+		color = pigment(vec3(0.3,0.4,0.6));
+		plane* myplane1 = new plane(normal, distance_from_origin, color);
+
+		// plane
+		normal = vec3(1, 0, 0);
+		distance_from_origin = -8;
+		color = pigment(vec3(0.5,0.0,0.3));
+		plane* myplane2 = new plane(normal, distance_from_origin, color);
+
+		// plane
+		normal = vec3(0, 0, 1);
+		distance_from_origin = -16;
+		color = pigment(vec3(0.7,0.7,0.2));
+		plane* myplane3 = new plane(normal, distance_from_origin, color);
 		
 		// shapes vector
 		vector<shape*> myshapes = vector<shape*>();
@@ -253,6 +273,9 @@ public:
 		myshapes.push_back(mysphere3);
 		myshapes.push_back(mysphere4);
 		myshapes.push_back(myplane);
+		myshapes.push_back(myplane1);
+		myshapes.push_back(myplane2);
+		myshapes.push_back(myplane3);
 
 		if (myshapes.size() != NUM_SHAPES)
 			cerr << "num shapes mismatch" << endl;
@@ -269,6 +292,14 @@ public:
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		{
 			glfwSetWindowShouldClose(window, GL_TRUE);
+		}
+
+		// toggle light movement
+		if (key == GLFW_KEY_L && action == GLFW_PRESS)
+		{
+			light_movement = !light_movement;
+			if (light_movement)
+				ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
 		}
 		
 		if (key == GLFW_KEY_W && action == GLFW_PRESS)
@@ -345,6 +376,16 @@ public:
 		{
 			mycam.m = !mycam.m;
 			ssbo_CPUMEM.mode.x = mycam.m;
+		}
+
+		// toggle scene
+		if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		{
+			mycam.p = !mycam.p;
+			if (mycam.p)
+				true_num_scene_objects = NUM_SHAPES;
+			else
+				true_num_scene_objects = NUM_SHAPES - 3;
 		}
 
 		// toggle fullscreen aspect ratio
@@ -499,6 +540,7 @@ public:
 		// instead of buried in computeInitGeom
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+		// ssbo_CPUMEM.light_pos = vec4(-4, 100, 200, 0);
 
 		// must pack simple shapes into buffer
 		for (int i = 0; i < NUM_SHAPES; i ++)
@@ -584,9 +626,16 @@ public:
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
 		// ssbo_CPUMEM.mode.y = get_last_elapsed_time();
-		ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
-		if (ssbo_CPUMEM.light_pos.x > 50)
-			ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
+		if (light_movement)
+		{
+			ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
+			if (ssbo_CPUMEM.light_pos.x > 50)
+				ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
+		}
+		else
+			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
+		
+		ssbo_CPUMEM.mode.z = true_num_scene_objects;
 		ssbo_CPUMEM.w = vec4(w, 0);
 		ssbo_CPUMEM.u = vec4(u, 0);
 		ssbo_CPUMEM.v = vec4(v, 0);
