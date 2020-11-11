@@ -224,7 +224,7 @@ public:
 		radius = 3.5;
 		color = pigment(vec3(0.8,0.8,0.1));
 		sphere* mysphere2 = new sphere(center,radius,color);
-		mysphere2->reflectivity = 0.2;
+		mysphere2->reflectivity = 0.03;
 
 		// sphere
 		center = vec3(-4.5,4,-15);

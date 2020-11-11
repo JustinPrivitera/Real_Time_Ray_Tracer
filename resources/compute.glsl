@@ -11,9 +11,9 @@
 #define PLANE_ID 5
 // others
 
-#define PHONG_SHADOW_MIN 0.03
+#define PHONG_SHADOW_MIN 0.06
 
-#define REFLECTION_DEGRADATION_CONSTANT 1.1
+// #define REFLECTION_DEGRADATION_CONSTANT 1
 
 // one shader unit per pixel
 
@@ -446,7 +446,7 @@ vec4 hybrid(vec3 dir)
 	{
 		hybrid_helper(lighting_buffer, i);
 		result_color = (result_color + c * lighting_buffer[0]) / (1 + c);
-		c = c * REFLECTION_DEGRADATION_CONSTANT * lighting_buffer[2].w;
+		c = c * lighting_buffer[2].w;
 		if (lighting_buffer[1].w == 1) // the stop bit was set
 			break;
 		i -= 1;
