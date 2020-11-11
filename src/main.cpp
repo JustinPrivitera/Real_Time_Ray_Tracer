@@ -29,7 +29,7 @@ using namespace glm;
 #define HEIGHT 480
 
 // number of scene objects
-#define NUM_SHAPES 3
+#define NUM_SHAPES 5
 
 // aspect ratio constants
 #define ASPECT_RATIO 1.333333 // horizontal
@@ -213,16 +213,32 @@ public:
 	scene init_scene()
 	{
 		// sphere
-		vec3 center = vec3(0,0,0);
+		vec3 center = vec3(0,-0.5,0);
 		float radius = 2;
 		pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
 		sphere* mysphere = new sphere(center,radius,color);
+		mysphere->reflectivity = 0.005;
 
 		// sphere
-		center = vec3(4,0,-2);
+		center = vec3(4,-0.5,-2);
 		radius = 3.5;
 		color = pigment(vec3(0.8,0.8,0.1));
 		sphere* mysphere2 = new sphere(center,radius,color);
+		mysphere2->reflectivity = 0.02;
+
+		// sphere
+		center = vec3(-4.5,4,-15);
+		radius = 4;
+		color = pigment(vec3(0.2,0.8,0.1));
+		sphere* mysphere3 = new sphere(center,radius,color);
+		mysphere3->reflectivity = 0.05;
+
+		// sphere
+		center = vec3(-8,-1,2);
+		radius = 1.5;
+		color = pigment(vec3(1,1,1));
+		sphere* mysphere4 = new sphere(center,radius,color);
+		mysphere4->reflectivity = 0.2;
 
 		// plane
 		vec3 normal = vec3(0, 1, 0);
@@ -234,6 +250,8 @@ public:
 		vector<shape*> myshapes = vector<shape*>();
 		myshapes.push_back(mysphere);
 		myshapes.push_back(mysphere2);
+		myshapes.push_back(mysphere3);
+		myshapes.push_back(mysphere4);
 		myshapes.push_back(myplane);
 
 		if (myshapes.size() != NUM_SHAPES)
@@ -454,9 +472,11 @@ public:
 				vec3 center = ((sphere*) curr)->location;
 				float rad = ((sphere*) curr)->radius;
 				vec3 color = ((sphere*) curr)->p.rgb;
+				float reflectivity = curr->reflectivity;
 				int id = SPHERE_ID;
 
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
+				ssbo_CPUMEM.simple_shapes[i][1].w = reflectivity;
 				ssbo_CPUMEM.simple_shapes[i][2] = vec4(color, id);
 			}
 			if (curr->id() == PLANE_ID)
@@ -465,10 +485,11 @@ public:
 				float dist_from_orig = ((plane*) curr)->dist_from_orig;
 				vec3 color = ((plane*) curr)->p.rgb;
 				vec3 p0 = ((plane*) curr)->p0;
+				float reflectivity = curr->reflectivity;
 				int id = PLANE_ID;
 
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
-				ssbo_CPUMEM.simple_shapes[i][1] = vec4(p0, 0);
+				ssbo_CPUMEM.simple_shapes[i][1] = vec4(p0, reflectivity);
 				ssbo_CPUMEM.simple_shapes[i][2] = vec4(color, id);
 			}
 		}

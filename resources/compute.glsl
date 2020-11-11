@@ -4,8 +4,8 @@
 
 #define WIDTH 640
 #define HEIGHT 480
-#define RECURSION_DEPTH 50
-#define NUM_SHAPES 3
+#define RECURSION_DEPTH 30
+#define NUM_SHAPES 5
 
 #define SPHERE_ID 1
 #define PLANE_ID 5
@@ -34,8 +34,8 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 light_pos; // for point lights only
 	
 	vec4 simple_shapes[NUM_SHAPES][3];
-	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
-	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
+	// sphere: vec4 center, radius; vec4 nothing, type; vec4 color, shape_id
+	// plane: vec4 normal, distance from origin; vec4 point in plane, type; vec4 color, shape_id
 
 	// vec4 pixels[WIDTH][HEIGHT];
 	vec4 rand_buffer[WIDTH][HEIGHT];
@@ -57,7 +57,6 @@ float random(vec2 st)
 
 float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
-
 	vec3 center = simple_shapes[shape_index][0].xyz;
 	float radius = simple_shapes[shape_index][0].w;
 
@@ -303,11 +302,11 @@ void foggy_helper(inout vec4 array[3], int depth)
 			// other shapes... this is not yet implemented
 		}
 
-		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
+		vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
-		// array[2] = vec4(R, ind);
+		// array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
+		array[2] = vec4(R, ind);
 	}
 	else // return background color
 	{
@@ -338,13 +337,123 @@ vec4 foggy(vec3 dir)
 	return result_color;
 }
 
-//////////////////////////////////////////////
+// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + reflectivity
+void hybrid_helper(inout vec4 array[3], int depth)
+{
+	if (depth <= 0)
+		array[0] = vec4(0);
+
+	vec3 pos = array[1].xyz;
+	vec3 dir = array[2].xyz;
+	// int last_ind = int(array[2].w);
+
+	float t = -1;
+	float res_t;
+	int ind = -1;
+
+	// the following math just gets the closest collision
+	for (int i = 0; i < NUM_SHAPES; i ++)
+	{
+		res_t = eval_ray(pos, dir, i);
+		if (res_t > 0.001)
+		{
+			if (res_t < t || t < 0)
+			{
+				t = res_t; // t is always the smallest t value so far
+				ind = i;
+			}
+		}
+	}
+	if (ind == -1) // ray intersected no geometry so return background color
+	{
+		array[0] = background;
+		array[1].w = 1; // this means stop the recursion
+	}
+	else // we hit something
+	{
+		vec4 attenuation = simple_shapes[ind][2];
+		vec3 curr_pos = pos + t * dir;
+		bool lit = shadow_ray(curr_pos, ind);
+		int shape_id = int(attenuation.w);
+		vec3 normal;
+		if (shape_id == SPHERE_ID)
+			normal = sphere_compute_normal(curr_pos, ind);
+		else if (shape_id == PLANE_ID)
+			normal = simple_shapes[ind][0].xyz;
+		else {} // other shapes... this is not yet implemented
+
+		// PHONG
+		// add shadow feeler results to color at point
+		if (lit)
+		{
+			vec3 l = normalize(light_pos.xyz - curr_pos);
+			attenuation = vec4(
+				attenuation
+					* clamp(
+						dot(normal, l), 
+						PHONG_SHADOW_MIN, 
+						1.0));
+		}
+		else // we are in shadow
+		{
+			attenuation = attenuation * vec4(PHONG_SHADOW_MIN);
+		}
+
+		// REFLECTION
+		float reflectivity = simple_shapes[ind][1].w;
+		if (reflectivity < 0.001) // not reflection
+		{
+			array[1].w = 1; // stop recursion
+		}
+		else // reflection
+		{
+			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
+			array[1].xyz = curr_pos;
+			array[2] = vec4(R, reflectivity);
+		}
+
+		array[0] = attenuation;
+	}
+}
+
+// every ray bounce, find phong lighting at point
+// then if it is reflective, add phong lighting to a new bounce times the current reflection constant
+// otherwise, return phong lighting
+
+vec4 hybrid(vec3 dir)
+{
+	// vec4 result_color = vec4(1);
+	vec4 lighting_buffer[3];
+
+	lighting_buffer[1].xyz = camera_location.xyz;
+	lighting_buffer[1].w = 0; // stop bit is set to 0
+	lighting_buffer[2] = vec4(dir, 0);
+
+	// do the first iteration outside
+	hybrid_helper(lighting_buffer, RECURSION_DEPTH);
+	float c = lighting_buffer[2].w;
+	vec4 result_color = lighting_buffer[0];
+
+	// if reflective, make result color = (res_col + c * hybrid) / (1 + c)
+	int i = RECURSION_DEPTH - 1;
+	while (i > 0)
+	{
+		hybrid_helper(lighting_buffer, i);
+		result_color = (result_color + c * lighting_buffer[0]) / (1 + c);
+		c = lighting_buffer[2].w;
+		if (lighting_buffer[1].w == 1) // the stop bit was set
+			break;
+		i -= 1;
+	}
+	// return result_color / running_total;
+	return result_color;
+}
 
 void main()
 {
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-	vec4 result_color = vec4(1);
+	vec4 result_color;
 	
 	// ray direction calculation
 	float hp = float(pixel_coords.x) / WIDTH;
@@ -355,8 +464,10 @@ void main()
 	
 	if (mode.x == 0)
 		result_color = phong(dir);
+	// else if (mode.x == 1)
+	// 	result_color = foggy(dir);
 	else
-		result_color = foggy(dir);
+		result_color = hybrid(dir);
 
 	// gamma correction
 	float gamma = 1/2.2;

@@ -13,8 +13,14 @@ using namespace glm;
 class shape 
 {
 public:
-	shape() : p(pigment()) {}
-	shape(pigment p) : p(p) {}
+	shape() : p(pigment())
+	{
+		reflectivity = 0;
+	}
+	shape(pigment p) : p(p)
+	{
+		reflectivity = 0;
+	}
 	// shape() : p(pigment()), f(finish()) {}
 	// shape(pigment p) : p(p), f(finish()) {}
 	// shape(pigment p, finish f) : p(p), f(f) {}
@@ -30,5 +36,6 @@ public:
 
 public:
 	pigment p;
+	float reflectivity;
 	// finish f;
 };
