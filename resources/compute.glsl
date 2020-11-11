@@ -387,12 +387,16 @@ void hybrid_helper(inout vec4 array[3], int depth)
 		if (lit)
 		{
 			vec3 l = normalize(light_pos.xyz - curr_pos);
+			float spec = pow(clamp(dot(normalize(l - dir), normal), 0, 1), 500);
+
 			attenuation = vec4(
 				attenuation
 					* clamp(
 						dot(normal, l), 
 						PHONG_SHADOW_MIN, 
 						1.0));
+
+			attenuation += vec4(spec * 1);
 		}
 		else // we are in shadow
 		{
@@ -445,7 +449,6 @@ vec4 hybrid(vec3 dir)
 			break;
 		i -= 1;
 	}
-	// return result_color / running_total;
 	return result_color;
 }
 

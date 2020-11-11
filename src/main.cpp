@@ -709,7 +709,7 @@ public:
 
 		camera_location = rt_camera.location;
 
-		compute();
+		compute(); // do the ray tracing here
 
 		// we want to render this to a texture
         int width, height;
