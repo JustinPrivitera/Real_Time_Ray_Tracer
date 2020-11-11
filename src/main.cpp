@@ -719,18 +719,20 @@ public:
 		}
 
 		if (rotate) {
-			glm::mat4 R = glm::rotate(glm::mat4(1), rot_y, glm::vec3(0, 1, 0));
+			glm::mat4 R = glm::rotate(glm::mat4(1), rot_y, rt_camera.up);
 			glm::vec4 dir = vec4(rt_camera.look_towards, 0);
 			dir = dir * R;
 			rt_camera.look_towards = vec3(dir.x, dir.y, dir.z);
+			rt_camera.up = vec4(rt_camera.up, 0) * R;
 		}
 
 		if (rotate_up_down)
 		{
-			glm::mat4 R = glm::rotate(glm::mat4(1), rot_x, glm::vec3(1, 0, 0));
+			glm::mat4 R = glm::rotate(glm::mat4(1), rot_x, right);
 			glm::vec4 dir = vec4(rt_camera.look_towards, 0);
 			dir = dir * R;
 			rt_camera.look_towards = vec3(dir.x, dir.y, dir.z);
+			rt_camera.up = vec4(rt_camera.up, 0) * R;
 		}
 	}
 
