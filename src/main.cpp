@@ -70,10 +70,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, m, f, q, e;
+	int w, a, s, d, m, f, q, e, sp, ls;
 	fake_camera()
 	{
-		w = a = s = d = m = f = q = e = 0;
+		w = a = s = d = m = f = q = e = sp = ls = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -304,6 +304,7 @@ public:
 			mycam.d = 0;
 		}
 
+		// camera rotation
 		if (key == GLFW_KEY_Q && action == GLFW_PRESS)
 		{
 			mycam.q = 1;
@@ -336,6 +337,24 @@ public:
 				aspect_ratio = ASPECT_RATIO;
 			else
 				aspect_ratio = FULLSCREEN_ASPECT_RATIO;
+		}
+
+		// move up and down
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
+		{
+			mycam.ls = 1;
+		}
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
+		{
+			mycam.ls = 0;
+		}
+		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+		{
+			mycam.sp = 1;
+		}
+		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
+		{
+			mycam.sp = 0;
 		}
 	}
 
@@ -637,6 +656,7 @@ public:
 	void update_camera() {
 		float rot_y = 0.0;
 		bool rotate = false;
+		// i wonder if it would be better to store this value in the camera, and update when needed?
 		vec3 right = normalize(cross(rt_camera.up, rt_camera.look_towards));
 		if (mycam.w == 1)
 			rt_camera.location -= 0.1 * rt_camera.look_towards;
@@ -646,6 +666,12 @@ public:
 			rt_camera.location -= 0.1 * right;
 		if (mycam.d == 1)
 			rt_camera.location += 0.1 * right;
+
+		if (mycam.sp == 1)
+			rt_camera.location += 0.1 * rt_camera.up;
+		if (mycam.ls == 1)
+			rt_camera.location -= 0.1 * rt_camera.up;
+
 		if (mycam.e == 1)
 		{
 			rot_y += 0.03;
