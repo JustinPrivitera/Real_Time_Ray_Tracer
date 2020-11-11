@@ -566,6 +566,9 @@ public:
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
 		// ssbo_CPUMEM.mode.y = get_last_elapsed_time();
+		ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
+		if (ssbo_CPUMEM.light_pos.x > 50)
+			ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
 		ssbo_CPUMEM.w = vec4(w, 0);
 		ssbo_CPUMEM.u = vec4(u, 0);
 		ssbo_CPUMEM.v = vec4(v, 0);
