@@ -68,7 +68,6 @@ float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 
 	float del = dot_of_stuff * dot_of_stuff - dot(pos_minus_center, pos_minus_center) + radius * radius;
 	
-
 	if (del < 0)
 	{
 		return -1;
@@ -142,17 +141,20 @@ bool shadow_ray(vec3 pos, int shape_index)
 	// float t_max = light_vector.x / l.x;
 	// new ray with p = pos and dir = l
 
+	// fixes shadow issue
+	vec3 new_pos = pos + 0.01 * l;
+
 	for (int i = 0; i < int(mode.z); i ++)
 	{
-		t = eval_ray(pos, l, i);
-		if (i == shape_index)
-		{
+		t = eval_ray(new_pos, l, i);
+		// if (i == shape_index)
+		// {
+		// 	if (t > 0.0001)
+		// 		if (length(t * l) < len)
+		// 			return false; // we are in shadow
+		// }
+		// else
 			if (t > 0.0001)
-				if (length(t * l) < len)
-					return false; // we are in shadow
-		}
-		else
-			if (t > 0)
 				if (length(t * l) < len)
 					return false; // we are in shadow
 	}
