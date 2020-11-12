@@ -540,10 +540,10 @@ void main()
 
 	// get color based on chosen lighting algorithm
 	
-	if (mode.x == 0)
+	if (mode.x == 1)
 		result_color = phong(dir);
-	// else if (mode.x == 1)
-	// 	result_color = foggy(dir);
+	else if (mode.x == 2)
+		result_color = foggy(dir);
 	else
 		result_color = hybrid(dir);
 
