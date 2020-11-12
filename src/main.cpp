@@ -635,6 +635,7 @@ public:
 		else
 			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
 		
+		// ssbo_CPUMEM.mode.y = randf();
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;
 		ssbo_CPUMEM.w = vec4(w, 0);
 		ssbo_CPUMEM.u = vec4(u, 0);

@@ -6,3 +6,4 @@ QEZC to rotate
 L to toggle light source movement
 P to toggle scene
 M to toggle reflective surfaces
+F to toggle aspect ratio

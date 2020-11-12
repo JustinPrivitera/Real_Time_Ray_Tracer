@@ -156,6 +156,18 @@ bool shadow_ray(vec3 pos)
 
 float shadow_ray_intensity(vec3 pos)
 {
+	// one issue is that we currently get the first hit, not the closest hit
+	// for accurate shadow blending we want the closest hit
+
+	// the next mystery issue is the backside of the spheres being shadowed improperly
+	// the shadow side of spheres will send rays and hit the front of the sphere
+	// so the inverse normal is pointed the wrong way
+	// so don't invert the normal, and instead just take absolute value of the dot product
+
+	// all shadowed regions should maybe also take into account the regular light at that pos,
+	// then scale appropriately
+	// hmmmm that's not trivial to implement :(
+
 	float t;
 
 	vec3 light_vector = light_pos.xyz - pos;
@@ -267,17 +279,17 @@ vec3 get_pt_within_unit_sphere()
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
 
-	vec2 seed1 = vec2(sin(x) + cos(y), sin(y) / cos(x));
-	vec2 seed2 = vec2(cos(y) - 1/cos(y), cos(x) - sin(y));
-	vec2 seed3 = vec2(sin(y), cos(x) * sin(x));
+	// vec2 seed1 = vec2(sin(x) + cos(y), sin(y) / cos(x));
+	// vec2 seed2 = vec2(cos(y) - 1/cos(y), cos(x) - sin(y));
+	// vec2 seed3 = vec2(sin(y), cos(x) * sin(x));
 
 	// vec2 seed1 = vec2(pow(x,y), pow(y,x/y));
 	// vec2 seed2 = vec2(seed1.x * pow(x,y - x), seed1.y * pow(y,x));
 	// vec2 seed3 = vec2(seed2.y * pow(y,x + y), seed2.x + pow(y,x));
 
-	// vec2 seed1 = vec2(x * seed.x, seed.x + seed.y);
-	// vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
-	// vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
+	vec2 seed1 = vec2(x * seed.x, seed.x + seed.y);
+	vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
+	vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
 
 	return normalize(vec3(
 				random(seed1) * 2 - 1,
@@ -345,11 +357,11 @@ void foggy_helper(inout vec4 array[3], int depth)
 			// other shapes... this is not yet implemented
 		}
 
-		vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
+		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		// array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
-		array[2] = vec4(R, ind);
+		array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
+		// array[2] = vec4(R, ind);
 	}
 	else // return background color
 	{
@@ -518,7 +530,7 @@ void main()
 	if (mode.x == 0)
 		result_color = phong(dir);
 	// else if (mode.x == 1)
-	// 	result_color = foggy(dir);
+		// result_color = foggy(dir);
 	else
 		result_color = hybrid(dir);
 
