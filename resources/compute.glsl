@@ -131,7 +131,7 @@ vec3 sphere_compute_normal(vec3 pos, int shape_index)
 	return normalize(pos - simple_shapes[shape_index][0].xyz);
 }
 
-bool shadow_ray(vec3 pos, int shape_index)
+bool shadow_ray(vec3 pos)
 {
 	double t;
 
@@ -147,18 +147,48 @@ bool shadow_ray(vec3 pos, int shape_index)
 	for (int i = 0; i < int(mode.z); i ++)
 	{
 		t = eval_ray(new_pos, l, i);
-		// if (i == shape_index)
-		// {
-		// 	if (t > 0.0001)
-		// 		if (length(t * l) < len)
-		// 			return false; // we are in shadow
-		// }
-		// else
-			if (t > 0.0001)
-				if (length(t * l) < len)
-					return false; // we are in shadow
+		if (t > 0.0001)
+			if (length(t * l) < len)
+				return false; // we are in shadow
 	}
 	return true;
+}
+
+float shadow_ray_intensity(vec3 pos)
+{
+	float t;
+
+	vec3 light_vector = light_pos.xyz - pos;
+	vec3 l = normalize(light_vector);
+	float len = length(light_vector);
+	// new ray with p = pos and dir = l
+
+	// fixes shadow issue
+	vec3 new_pos = pos + 0.01 * l;
+
+	for (int i = 0; i < int(mode.z); i ++)
+	{
+		t = eval_ray(new_pos, l, i);
+		if (t > 0.0001)
+		{
+			if (length(t * l) < len)
+			{
+				vec3 curr_pos = new_pos + t * l;
+				int shape_id = int(simple_shapes[i][2].w);
+				vec3 normal;
+				if (shape_id == SPHERE_ID)
+					normal = sphere_compute_normal(curr_pos, i);
+				else if (shape_id == PLANE_ID)
+					normal = simple_shapes[i][0].xyz;
+				else {} // other shapes... this is not yet implemented
+				return clamp(1 - dot(-1 * normal, l), 0, 1);
+
+
+				// return false; // we are in shadow
+			}
+		}
+	}
+	return -1;
 }
 
 vec4 phong(vec3 dir) // phong diffuse lighting
@@ -193,7 +223,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 
 		// I guess we assume there is a light source for now
 		vec3 curr_pos = camera_location.xyz + t * dir;
-		bool lit = shadow_ray(curr_pos, ind);
+		bool lit = shadow_ray(curr_pos);
 		int shape_id = int(simple_shapes[ind][2].w);
 		vec3 normal;
 		if (shape_id == SPHERE_ID)
@@ -386,7 +416,10 @@ void hybrid_helper(inout vec4 array[3], int depth)
 	{
 		vec4 attenuation = simple_shapes[ind][2];
 		vec3 curr_pos = pos + t * dir;
-		bool lit = shadow_ray(curr_pos, ind);
+		bool lit = shadow_ray(curr_pos);
+
+		// float intensity = shadow_ray_intensity(curr_pos);
+
 		int shape_id = int(attenuation.w);
 		vec3 normal;
 		if (shape_id == SPHERE_ID)
@@ -398,6 +431,7 @@ void hybrid_helper(inout vec4 array[3], int depth)
 		// PHONG
 		// add shadow feeler results to color at point
 		if (lit)
+		// if (intensity < 0)
 		{
 			vec3 l = normalize(light_pos.xyz - curr_pos);
 			float spec = pow(clamp(dot(normalize(l - dir), normal), 0, 1), 500);
@@ -413,6 +447,7 @@ void hybrid_helper(inout vec4 array[3], int depth)
 		}
 		else // we are in shadow
 		{
+			// attenuation = attenuation * intensity * vec4(PHONG_SHADOW_MIN);
 			attenuation = attenuation * vec4(PHONG_SHADOW_MIN);
 		}
 
@@ -450,6 +485,9 @@ vec4 hybrid(vec3 dir)
 	hybrid_helper(lighting_buffer, RECURSION_DEPTH);
 	float c = lighting_buffer[2].w;
 	vec4 result_color = lighting_buffer[0];
+
+	// if (lighting_buffer[1].w == 1) // the stop bit was set
+	// 	return result_color;
 
 	int i = RECURSION_DEPTH - 1;
 	while (i > 0)
