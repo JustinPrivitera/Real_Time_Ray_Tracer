@@ -40,7 +40,8 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// plane: vec4 normal, distance from origin; vec4 point in plane, type; vec4 color, shape_id
 
 	// vec4 pixels[WIDTH][HEIGHT];
-	vec4 rand_buffer[WIDTH][HEIGHT];
+	// vec4 rand_buffer[WIDTH][HEIGHT];
+	vec4 rand_buffer[2];
 };
 
 uniform int sizeofbuffer;
@@ -274,10 +275,17 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 
 vec3 get_pt_within_unit_sphere()
 {
-	vec2 seed = vec2(mode.y, 1/ mode.y);
+	// vec2 seed = vec2(mode.y, 1/ mode.y);
 
-	uint x = gl_GlobalInvocationID.x;
-	uint y = gl_GlobalInvocationID.y;
+	vec2 seed1 = vec2(rand_buffer[0].x, rand_buffer[0].y);
+	vec2 seed2 = vec2(rand_buffer[0].z, rand_buffer[0].w);
+	vec2 seed3 = vec2(rand_buffer[1].x, rand_buffer[1].y);
+	vec2 seed4 = vec2(rand_buffer[1].z, rand_buffer[1].w);
+
+	vec2 xy = gl_GlobalInvocationID.xy;
+
+	// uint x = gl_GlobalInvocationID.x;
+	// uint y = gl_GlobalInvocationID.y;
 
 	// vec2 seed1 = vec2(sin(x) + cos(y), sin(y) / cos(x));
 	// vec2 seed2 = vec2(cos(y) - 1/cos(y), cos(x) - sin(y));
@@ -287,14 +295,19 @@ vec3 get_pt_within_unit_sphere()
 	// vec2 seed2 = vec2(seed1.x * pow(x,y - x), seed1.y * pow(y,x));
 	// vec2 seed3 = vec2(seed2.y * pow(y,x + y), seed2.x + pow(y,x));
 
-	vec2 seed1 = vec2(x * seed.x, seed.x + seed.y);
-	vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
-	vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
+	// vec2 seed1 = vec2(x * seed.x, seed.x + seed.y);
+	// vec2 seed2 = vec2(seed.y, y + seed.x * seed.y);
+	// vec2 seed3 = vec2(seed.x / seed.y, x / y + seed.x * seed.y);
 
 	return normalize(vec3(
-				random(seed1) * 2 - 1,
-				random(seed2) * 2 - 1,
-				random(seed3) * 2 - 1));
+				random(seed1 + xy * seed4) * 2 - 1,
+				random(seed2 - xy * seed4) * 2 - 1,
+				random(seed3 * xy + seed4) * 2 - 1));
+
+	// return normalize(vec3(
+	// 			random(seed1) * 2 - 1,
+	// 			random(seed2) * 2 - 1,
+	// 			random(seed3) * 2 - 1));
 
 	// return normalize(vec3(rand_buffer[x][y].x, rand_buffer[x][y].y, rand_buffer[x][y].z));
 }
@@ -530,7 +543,7 @@ void main()
 	if (mode.x == 0)
 		result_color = phong(dir);
 	// else if (mode.x == 1)
-		// result_color = foggy(dir);
+	// 	result_color = foggy(dir);
 	else
 		result_color = hybrid(dir);
 

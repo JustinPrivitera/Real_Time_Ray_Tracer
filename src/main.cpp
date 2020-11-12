@@ -54,6 +54,7 @@ public:
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 	// vec4 pixels[WIDTH][HEIGHT];
 	// vec4 rand_buffer[WIDTH][HEIGHT];
+	vec4 rand_buffer[2];
 };
 
 
@@ -581,6 +582,9 @@ public:
 		// 	}
 		// }
 
+		ssbo_CPUMEM.rand_buffer[0] = vec4(randf(), randf(), randf(), randf());
+		ssbo_CPUMEM.rand_buffer[1] = vec4(randf(), randf(), randf(), randf());
+
 		glGenBuffers(1, &ssbo_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
@@ -635,7 +639,7 @@ public:
 		else
 			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
 		
-		// ssbo_CPUMEM.mode.y = randf();
+		ssbo_CPUMEM.mode.y = randf();
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;
 		ssbo_CPUMEM.w = vec4(w, 0);
 		ssbo_CPUMEM.u = vec4(u, 0);
@@ -652,6 +656,9 @@ public:
 		// 		ssbo_CPUMEM.rand_buffer[i][j] = vec4(randf(), randf(), randf(), 0);
 		// 	}
 		// }
+
+		ssbo_CPUMEM.rand_buffer[0] = vec4(randf(), randf(), randf(), randf());
+		ssbo_CPUMEM.rand_buffer[1] = vec4(randf(), randf(), randf(), randf());
 
 		GLuint block_index = 1;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
