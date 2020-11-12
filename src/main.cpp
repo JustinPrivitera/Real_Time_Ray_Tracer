@@ -71,10 +71,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, m, f, q, e, sp, ls, z, c, p;
+	int w, a, s, d, f, q, e, sp, ls, z, c, p;
 	fake_camera()
 	{
-		w = a = s = d = m = f = q = e = sp = ls = z = c = p = 0;
+		w = a = s = d = f = q = e = sp = ls = z = c = p = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -136,16 +136,6 @@ inline vec3 operator*(double Sc, const vec3 &v) {
 
 inline vec3 operator*(int Sc, const vec3 &v) {
 	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
-}
-
-vec4 pow_vec(vec4 vec, vec4 pows)
-{
-	return vec4(pow(vec.x, pows.x), pow(vec.y, pows.y), pow(vec.z, pows.z), pow(vec.w, pows.w));
-}
-
-vec4 clamp(vec4 v, float min, float max)
-{
-	return vec4(clamp(v.x, min, max), clamp(v.y, min, max), clamp(v.z, min, max), clamp(v.w, min, max));
 }
 
 class scene
