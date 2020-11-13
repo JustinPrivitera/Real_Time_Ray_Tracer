@@ -373,7 +373,7 @@ void foggy_helper(inout vec4 array[3], int depth)
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(get_pt_within_unit_sphere() + normal, ind);
+		array[2] = vec4(normalize(get_pt_within_unit_sphere() + normal), ind);
 		// array[2] = vec4(R, ind);
 	}
 	else // return background color
