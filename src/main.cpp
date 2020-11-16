@@ -778,7 +778,7 @@ public:
 		heightshader->addAttribute("vertTex");
 	}
 
-	void update_camera() {
+	void update_camera(double frametime) {
 		float rot_y = 0.0;
 		float rot_x = 0.0;
 		bool rotate = false;
@@ -786,39 +786,39 @@ public:
 		// i wonder if it would be better to store this value in the camera, and update when needed?
 		vec3 right = normalize(cross(rt_camera.up, rt_camera.look_towards));
 		if (mycam.w == 1)
-			rt_camera.location -= 0.1 * rt_camera.look_towards;
+			rt_camera.location -= 5.0 * rt_camera.look_towards * frametime;
 		if (mycam.s == 1)
-			rt_camera.location += 0.1 * rt_camera.look_towards;
+			rt_camera.location += 5.0 * rt_camera.look_towards * frametime;
 		if (mycam.a == 1)
-			rt_camera.location -= 0.1 * right;
+			rt_camera.location -= 5.0 * right * frametime;
 		if (mycam.d == 1)
-			rt_camera.location += 0.1 * right;
+			rt_camera.location += 5.0 * right * frametime;
 
 		if (mycam.sp == 1)
-			rt_camera.location += 0.1 * rt_camera.up;
+			rt_camera.location += 5.0 * rt_camera.up * frametime;
 		if (mycam.ls == 1)
-			rt_camera.location -= 0.1 * rt_camera.up;
+			rt_camera.location -= 5.0 * rt_camera.up * frametime;
 
 		if (mycam.e == 1)
 		{
-			rot_y += 0.03;
+			rot_y += 1.5 * frametime;
 			rotate = true;
 		}
 			
 		if (mycam.q == 1)
 		{
-			rot_y -= 0.03;
+			rot_y -= 1.5 * frametime;
 			rotate = true;
 		}
 
 		if (mycam.z == 1)
 		{
-			rot_x -= 0.03;
+			rot_x -= 1.5 * frametime;
 			rotate_up_down = true;
 		}
 		if (mycam.c == 1)
 		{
-			rot_x += 0.03;
+			rot_x += 1.5 * frametime;
 			rotate_up_down = true;
 		}
 
@@ -842,7 +842,11 @@ public:
 
 	void render()
 	{
-		update_camera();
+
+		double frametime = get_last_elapsed_time();
+		cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
+
+		update_camera(frametime);
 
 		w = rt_camera.look_towards;
 		u = normalize(cross(rt_camera.up, w));
@@ -874,9 +878,6 @@ public:
         glBindVertexArray(VertexArrayIDScreen);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         prog->unbind();
-
-		double frametime = get_last_elapsed_time();
-		cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
 	}
 
 };
