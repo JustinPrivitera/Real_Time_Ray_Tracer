@@ -41,6 +41,7 @@
     <None Include="..\resources\compute.glsl" />
     <None Include="..\resources\height_frag.glsl" />
     <None Include="..\resources\height_vertex.glsl" />
+    <None Include="..\resources\postprocessing.glsl" />
     <None Include="..\resources\shader_fragment.glsl" />
     <None Include="..\resources\shader_vertex.glsl" />
   </ItemGroup>

@@ -52,7 +52,7 @@ public:
 	vec4 simple_shapes[NUM_SHAPES][3];
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
-	// vec4 pixels[WIDTH][HEIGHT];
+	 vec4 pixels[WIDTH][HEIGHT];
 	// vec4 rand_buffer[WIDTH][HEIGHT];
 	vec4 rand_buffer[2];
 };
@@ -185,7 +185,7 @@ public:
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
-	GLuint computeProgram;
+	GLuint computeProgram, postProcessingProgram;
 
 	// Our shader program
 	std::shared_ptr<Program> prog, heightshader;
@@ -575,6 +575,15 @@ public:
 			}
 		}
 
+
+		for (int i = 0; i < WIDTH; i++)
+		{
+			for (int j = 0; j < HEIGHT; j++)
+			{
+				ssbo_CPUMEM.pixels[i][j] = vec4();
+			}
+		}
+
 		// for (int i = 0; i < WIDTH; i ++)
 		// {
 		// 	for (int j = 0; j < HEIGHT; j ++)
@@ -623,6 +632,32 @@ public:
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+
+		ShaderString = readFileAsString("../resources/postprocessing.glsl");
+		shader = ShaderString.c_str();
+		GLuint postProcessingShader = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(postProcessingShader, 1, &shader, nullptr);
+
+		rc;
+		CHECKED_GL_CALL(glCompileShader(postProcessingShader));
+		CHECKED_GL_CALL(glGetShaderiv(postProcessingShader, GL_COMPILE_STATUS, &rc));
+		if (!rc)	//error compiling the shader file
+		{
+			GLSL::printShaderInfoLog(postProcessingShader);
+			std::cout << "Error compiling post processing shader " << std::endl;
+			system("pause");
+			exit(1);
+		}
+
+		postProcessingProgram = glCreateProgram();
+		glAttachShader(postProcessingProgram, postProcessingShader);
+		glLinkProgram(postProcessingProgram);
+		glUseProgram(postProcessingProgram);
+
+		block_index;
+		block_index = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(postProcessingProgram, block_index, ssbo_binding_point_index);
 	}
 
 	void compute()
@@ -676,6 +711,17 @@ public:
 
 		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+		block_index = 1;
+		block_index = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(postProcessingProgram, block_index, ssbo_binding_point_index);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glUseProgram(postProcessingProgram);
+
+		glDispatchCompute((GLuint)WIDTH, (GLuint)HEIGHT, 1);		//start compute shader
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
         glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);

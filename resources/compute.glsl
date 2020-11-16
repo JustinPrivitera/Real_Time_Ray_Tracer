@@ -19,8 +19,6 @@
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
-layout(rgba32f, binding = 0) uniform image2D img_output;									//output image
-
 layout (std430, binding = 0) volatile buffer shader_data
 {
 	vec4 mode;
@@ -39,7 +37,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// sphere: vec4 center, radius; vec4 nothing, type; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane, type; vec4 color, shape_id
 
-	// vec4 pixels[WIDTH][HEIGHT];
+	vec4 pixels[WIDTH][HEIGHT];
 	// vec4 rand_buffer[WIDTH][HEIGHT];
 	vec4 rand_buffer[2];
 };
@@ -553,8 +551,7 @@ void main()
 
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
-
 	// write image
-	imageStore(img_output, pixel_coords, result_color);
+	pixels[pixel_coords.x][pixel_coords.y] = result_color;
 	return;
 }
