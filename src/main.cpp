@@ -39,22 +39,25 @@ using namespace glm;
 class ssbo_data
 {
 public:
-	vec4 mode;
-	vec4 w;
-	vec4 u;
-	vec4 v;
-	vec4 horizontal;
-	vec4 vertical;
-	vec4 llc_minus_campos;
-	vec4 camera_location;
+	vec4 mode; // utility
+	vec4 w; // ray casting vector
+	vec4 u; // ray casting vector
+	vec4 v; // ray casting vector
+	vec4 horizontal; // ray casting vector
+	vec4 vertical; // ray casting vector
+	vec4 llc_minus_campos; // ray casting vector
+	vec4 camera_location; // ray casting vector
 	vec4 background; // represents the background color
 	vec4 light_pos; // for point lights only
-	vec4 simple_shapes[NUM_SHAPES][3];
+	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
+	vec4 rand_buffer[2]; // stores random numbers needed for ray bounces
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
-	 vec4 pixels[WIDTH][HEIGHT];
-	// vec4 rand_buffer[WIDTH][HEIGHT];
-	vec4 rand_buffer[2];
+
+	// g buffer
+	vec4 pixels[WIDTH][HEIGHT];
+	vec4 normals_buffer[WIDTH][HEIGHT];
+	vec4 depth_buffer[WIDTH][HEIGHT];
 };
 
 
@@ -584,14 +587,6 @@ public:
 			}
 		}
 
-		// for (int i = 0; i < WIDTH; i ++)
-		// {
-		// 	for (int j = 0; j < HEIGHT; j ++)
-		// 	{
-		// 		ssbo_CPUMEM.rand_buffer[i][j] = vec4(randf(), randf(), randf(), 0);
-		// 	}
-		// }
-
 		ssbo_CPUMEM.rand_buffer[0] = vec4(randf(), randf(), randf(), randf());
 		ssbo_CPUMEM.rand_buffer[1] = vec4(randf(), randf(), randf(), randf());
 
@@ -664,8 +659,6 @@ public:
 	{
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
-		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
-		// ssbo_CPUMEM.mode.y = get_last_elapsed_time();
 		if (light_movement)
 		{
 			ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
@@ -684,14 +677,6 @@ public:
 		ssbo_CPUMEM.vertical = vec4(vertical, 0);
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
 		ssbo_CPUMEM.camera_location = vec4(camera_location, 0);
-
-		// for (int i = 0; i < WIDTH; i ++)
-		// {
-		// 	for (int j = 0; j < HEIGHT; j ++)
-		// 	{
-		// 		ssbo_CPUMEM.rand_buffer[i][j] = vec4(randf(), randf(), randf(), 0);
-		// 	}
-		// }
 
 		ssbo_CPUMEM.rand_buffer[0] = vec4(randf(), randf(), randf(), randf());
 		ssbo_CPUMEM.rand_buffer[1] = vec4(randf(), randf(), randf(), randf());
