@@ -37,9 +37,9 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// g buffer
-	vec4 pixels[WIDTH][HEIGHT];
-	vec4 normals_buffer[WIDTH][HEIGHT];
-	vec4 depth_buffer[WIDTH][HEIGHT];
+	vec4 pixels[2][WIDTH][HEIGHT];
+	vec4 normals_buffer[2][WIDTH][HEIGHT];
+	vec4 depth_buffer[2][WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -273,8 +273,6 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 
 vec3 get_pt_within_unit_sphere()
 {
-	// vec2 seed = vec2(mode.y, 1/ mode.y);
-
 	vec2 seed1 = vec2(rand_buffer[0].x, rand_buffer[0].y);
 	vec2 seed2 = vec2(rand_buffer[0].z, rand_buffer[0].w);
 	vec2 seed3 = vec2(rand_buffer[1].x, rand_buffer[1].y);
@@ -320,6 +318,8 @@ void foggy_helper_first_time(inout vec4 array[3], int depth)
 		}
 	}
 
+	int flap = int(mode.y);
+
 	if (ind != -1) // we must have hit something
 	{
 		vec4 attenuation = simple_shapes[ind][2];
@@ -335,8 +335,8 @@ void foggy_helper_first_time(inout vec4 array[3], int depth)
 			// other shapes... this is not yet implemented
 		}
 
-		normals_buffer[x][y] = vec4(normal, 1);
-		depth_buffer[x][y] = vec4(t, 0, 0, 1);
+		normals_buffer[flap][x][y] = vec4(normal, 1);
+		depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
 
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
@@ -346,8 +346,8 @@ void foggy_helper_first_time(inout vec4 array[3], int depth)
 	}
 	else // return background color
 	{
-		normals_buffer[x][y] = vec4(0);
-		depth_buffer[x][y] = vec4(0);
+		normals_buffer[flap][x][y] = vec4(0);
+		depth_buffer[flap][x][y] = vec4(0);
 
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion
@@ -580,11 +580,9 @@ void main()
 
 	// gamma correction
 	float gamma = 1/2.2;
-	// gamma = 1000 * mode.y + gamma;
-
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 	// write image
-	pixels[pixel_coords.x][pixel_coords.y] = result_color;
+	pixels[int(mode.y)][pixel_coords.x][pixel_coords.y] = result_color;
 	return;
 }

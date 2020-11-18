@@ -55,9 +55,9 @@ public:
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// g buffer
-	vec4 pixels[WIDTH][HEIGHT];
-	vec4 normals_buffer[WIDTH][HEIGHT];
-	vec4 depth_buffer[WIDTH][HEIGHT];
+	vec4 pixels[2][WIDTH][HEIGHT];
+	vec4 normals_buffer[2][WIDTH][HEIGHT];
+	vec4 depth_buffer[2][WIDTH][HEIGHT];
 };
 
 
@@ -583,7 +583,8 @@ public:
 		{
 			for (int j = 0; j < HEIGHT; j++)
 			{
-				ssbo_CPUMEM.pixels[i][j] = vec4();
+				ssbo_CPUMEM.pixels[0][i][j] = vec4();
+				ssbo_CPUMEM.pixels[1][i][j] = vec4();
 			}
 		}
 
@@ -657,6 +658,7 @@ public:
 
 	void compute()
 	{
+		static int flap = 0;
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		if (light_movement)
@@ -668,7 +670,7 @@ public:
 		else
 			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
 		
-		ssbo_CPUMEM.mode.y = randf();
+		ssbo_CPUMEM.mode.y = flap;
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;
 		ssbo_CPUMEM.w = vec4(w, 0);
 		ssbo_CPUMEM.u = vec4(u, 0);
@@ -718,6 +720,8 @@ public:
 		siz = sizeof(ssbo_data);
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+		flap = !flap;
 	}
 
 	//General OGL initialization - set OGL state here

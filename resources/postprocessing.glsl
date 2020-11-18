@@ -31,9 +31,9 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// g buffer
-	vec4 pixels[WIDTH][HEIGHT];
-	vec4 normals_buffer[WIDTH][HEIGHT];
-	vec4 depth_buffer[WIDTH][HEIGHT];
+	vec4 pixels[2][WIDTH][HEIGHT];
+	vec4 normals_buffer[2][WIDTH][HEIGHT];
+	vec4 depth_buffer[2][WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -43,80 +43,98 @@ void main()
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
 
-	vec4 color = pixels[x][y];
-	vec4 normal = normals_buffer[x][y];
-	vec4 depth = depth_buffer[x][y];
+	bool flap = bool(mode.y);
+	int flapi = int(flap);
+	int notflapi = int(!flap);
+
+	vec4 color = pixels[flapi][x][y];
+	vec4 normal = normals_buffer[flapi][x][y];
+	vec4 depth = depth_buffer[flapi][x][y];
 
 	if (normal.w > 0.99) // if it is not a background pixel
 	{
-		vec4 up_color, down_color, left_color, right_color;
-		vec4 up_normal, down_normal, left_normal, right_normal;
-		vec4 up_depth, down_depth, left_depth, right_depth;
-		up_color = down_color = left_color = right_color = vec4(0);
-		up_normal = down_normal = left_normal = right_normal = vec4(0);
-		up_depth = down_depth = left_depth = right_depth = vec4(0);
-		float u,d,l,r;
-		u = d = l = r = 0;
+		vec4 last_color = pixels[notflapi][x][y];
+		vec4 last_normal = normals_buffer[notflapi][x][y];
+		vec4 last_depth = depth_buffer[notflapi][x][y];
 
-		if (x + 1 < WIDTH)
-		{
-			right_color = pixels[x + 1][y];
-			right_normal = normals_buffer[x + 1][y];
-			right_depth = depth_buffer[x + 1][y];
-			if (right_normal.w > 0.99) // it is not a background pixel
-			{
-				float n = clamp(dot(right_normal.xyz, normal.xyz), 0, 1);
-				// float dd = 1 - clamp(abs(depth.x - right_depth.x), 0, 1);
-				// float c = length(color.xyz - right_color.xyz);
-				r = n;
-			}
-		}
+		float normal_dot = clamp(dot(normal.xyz, last_normal.xyz), 0, 1);
+		float depth_diff = 1 - clamp(abs(depth.x - last_depth.x), 0, 1);
 
-		if (x - 1 >= 0)
-		{
-			left_color = pixels[x - 1][y];
-			left_normal = normals_buffer[x - 1][y];
-			left_depth = depth_buffer[x - 1][y];
-			if (left_normal.w > 0.99) // it is not a background pixel
-			{
-				float n = clamp(dot(left_normal.xyz, normal.xyz), 0, 1);
-				// float dd = 1 - clamp(abs(depth.x - left_depth.x), 0, 1);
-				// float c = length(color.xyz - left_color.xyz);
-				l = n;
-			}
-		}
+		float coeff = normal_dot;// * depth_diff;
 
-		if (y + 1 < HEIGHT)
-		{
-			up_color = pixels[x][y + 1];
-			up_normal = normals_buffer[x][y + 1];
-			up_depth = depth_buffer[x][y + 1];
-			if (up_normal.w > 0.99) // it is not a background pixel
-			{
-				float n = clamp(dot(up_normal.xyz, normal.xyz), 0, 1);
-				// float dd = 1 - clamp(abs(depth.x - up_depth.x), 0, 1);
-				// float c = length(color.xyz - up_color.xyz);
-				u = n;
-			}
-		}
+		color = (coeff * last_color + color) / (1 + coeff);
 
-		if (y - 1 >= 0)
-		{
-			down_color = pixels[x][y - 1];
-			down_normal = normals_buffer[x][y - 1];
-			down_depth = depth_buffer[x][y - 1];
-			if (down_normal.w > 0.99) // it is not a background pixel
-			{
-				float n = clamp(dot(down_normal.xyz, normal.xyz), 0, 1);
-				// float dd = 1 - clamp(abs(depth.x - down_depth.x), 0, 1);
-				// float c = length(color.xyz - down_color.xyz);
-				d = n;
-			}
-		}
 
-		color = 
-			(color + u * up_color + d * down_color + l * left_color + r * right_color) 
-			/ (1 + u + d + l + r);
+		// vec4 up_color, down_color, left_color, right_color;
+		// vec4 up_normal, down_normal, left_normal, right_normal;
+		// vec4 up_depth, down_depth, left_depth, right_depth;
+		// up_color = down_color = left_color = right_color = vec4(0);
+		// up_normal = down_normal = left_normal = right_normal = vec4(0);
+		// up_depth = down_depth = left_depth = right_depth = vec4(0);
+		// float u,d,l,r;
+		// u = d = l = r = 0;
+
+		// if (x + 1 < WIDTH)
+		// {
+		// 	right_color = pixels[flapi][x + 1][y];
+		// 	right_normal = normals_buffer[flapi][x + 1][y];
+		// 	right_depth = depth_buffer[flapi][x + 1][y];
+		// 	if (right_normal.w > 0.99) // it is not a background pixel
+		// 	{
+		// 		float n = clamp(dot(right_normal.xyz, normal.xyz), 0, 1);
+		// 		// float dd = 1 - clamp(abs(depth.x - right_depth.x), 0, 1);
+		// 		// float c = length(color.xyz - right_color.xyz);
+		// 		r = n;
+		// 	}
+		// }
+
+		// if (x - 1 >= 0)
+		// {
+		// 	left_color = pixels[flapi][x - 1][y];
+		// 	left_normal = normals_buffer[flapi][x - 1][y];
+		// 	left_depth = depth_buffer[flapi][x - 1][y];
+		// 	if (left_normal.w > 0.99) // it is not a background pixel
+		// 	{
+		// 		float n = clamp(dot(left_normal.xyz, normal.xyz), 0, 1);
+		// 		// float dd = 1 - clamp(abs(depth.x - left_depth.x), 0, 1);
+		// 		// float c = length(color.xyz - left_color.xyz);
+		// 		l = n;
+		// 	}
+		// }
+
+		// if (y + 1 < HEIGHT)
+		// {
+		// 	up_color = pixels[flapi][x][y + 1];
+		// 	up_normal = normals_buffer[flapi][x][y + 1];
+		// 	up_depth = depth_buffer[flapi][x][y + 1];
+		// 	if (up_normal.w > 0.99) // it is not a background pixel
+		// 	{
+		// 		float n = clamp(dot(up_normal.xyz, normal.xyz), 0, 1);
+		// 		// float dd = 1 - clamp(abs(depth.x - up_depth.x), 0, 1);
+		// 		// float c = length(color.xyz - up_color.xyz);
+		// 		u = n;
+		// 	}
+		// }
+
+		// if (y - 1 >= 0)
+		// {
+		// 	down_color = pixels[flapi][x][y - 1];
+		// 	down_normal = normals_buffer[flapi][x][y - 1];
+		// 	down_depth = depth_buffer[flapi][x][y - 1];
+		// 	if (down_normal.w > 0.99) // it is not a background pixel
+		// 	{
+		// 		float n = clamp(dot(down_normal.xyz, normal.xyz), 0, 1);
+		// 		// float dd = 1 - clamp(abs(depth.x - down_depth.x), 0, 1);
+		// 		// float c = length(color.xyz - down_color.xyz);
+		// 		d = n;
+		// 	}
+		// }
+
+		// u = d = l = r = 1;
+
+		// color = 
+		// 	(color + u * up_color + d * down_color + l * left_color + r * right_color) 
+		// 	/ (1 + u + d + l + r);
 	}
 
 	// write image
