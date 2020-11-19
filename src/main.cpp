@@ -43,13 +43,11 @@ class ssbo_data
 {
 public:
 	vec4 mode; // utility
-	vec4 w[NUM_FRAMES]; // post processing
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
-	vec4 camera_location[NUM_FRAMES]; // ray casting vector
+	vec4 camera_location; // ray casting vector
 	vec4 background; // represents the background color
-	// vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
@@ -63,7 +61,6 @@ public:
 		// vec4: vec3 color, int shape_id
 
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
-	
 
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
@@ -184,8 +181,6 @@ public:
 	vec3 horizontal;
 	vec3 vertical;
 	vec3 llc_minus_campos;
-	vec3 camera_location;
-	// vec3 light_pos;
 	// end
 
 	// build ray trace camera
@@ -653,9 +648,8 @@ public:
 
 		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
 		ssbo_CPUMEM.mode = vec4(1,0,0,0);
-		ssbo_CPUMEM.w[0] = vec4(); //ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec4();
 		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
-		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location[0] = vec4();
+		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
 		// maybe there is a better place to store these important default values...
 		// instead of buried in computeInitGeom
 		// ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
@@ -783,24 +777,12 @@ public:
 		static int flap = 0;
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
-		// if (light_movement)
-		// {
-		// 	ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
-		// 	if (ssbo_CPUMEM.light_pos.x > 50)
-		// 		ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
-		// }
-		// else
-		// 	ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
-		
 		ssbo_CPUMEM.mode.y = flap;
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;
-		ssbo_CPUMEM.w[flap] = vec4(w, 0);
-		// ssbo_CPUMEM.u = vec4(u, 0);
-		// ssbo_CPUMEM.v = vec4(v, 0);
 		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
 		ssbo_CPUMEM.vertical = vec4(vertical, 0);
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
-		ssbo_CPUMEM.camera_location[flap] = vec4(camera_location, 0);
+		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
 
 		for (int i = 0; i < AA * 2; i ++)
 		{
@@ -971,8 +953,6 @@ public:
 		// llc = rt_camera.location - 0.5 * (horizontal + vertical) - w;
 
 		llc_minus_campos = -0.5 * (horizontal + vertical) - w;
-
-		camera_location = rt_camera.location;
 
 		compute(); // do the ray tracing here
 

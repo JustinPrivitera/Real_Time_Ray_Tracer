@@ -25,13 +25,11 @@ layout(local_size_x = 1, local_size_y = 1) in;
 layout (std430, binding = 0) volatile buffer shader_data
 {
 	vec4 mode; // utility
-	vec4 w[NUM_FRAMES]; // post processing
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
-	vec4 camera_location[NUM_FRAMES]; // ray casting vector
+	vec4 camera_location; // ray casting vector
 	vec4 background; // represents the background color
-	// vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
@@ -202,7 +200,7 @@ void ambient_occlusion_helper_first_time(inout vec4 array[3], int depth, int aa)
 			return;
 		}
 
-		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
+		vec3 curr_pos = camera_location.xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
 		if (id == SPHERE_ID)
@@ -278,7 +276,7 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 			return;
 		}
 
-		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
+		vec3 curr_pos = camera_location.xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
 		if (id == SPHERE_ID)
@@ -314,7 +312,7 @@ vec4 ambient_occlusion(vec3 dir, int aa)
 	// vec4 result_color = vec4(1);
 	vec4 ambient_occlusion_buffer[3];
 
-	ambient_occlusion_buffer[1].xyz = camera_location[int(mode.y)].xyz;
+	ambient_occlusion_buffer[1].xyz = camera_location.xyz;
 	ambient_occlusion_buffer[1].w = 0; // stop bit is set to 0
 	ambient_occlusion_buffer[2] = vec4(dir, 0);
 

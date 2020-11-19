@@ -19,13 +19,11 @@ layout(rgba32f, binding = 0) uniform image2D img_output;
 layout (std430, binding = 0) volatile buffer shader_data
 {
 	vec4 mode; // utility
-	vec4 w[NUM_FRAMES]; // post processing
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
-	vec4 camera_location[NUM_FRAMES]; // ray casting vector
+	vec4 camera_location; // ray casting vector
 	vec4 background; // represents the background color
-	// vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
@@ -53,39 +51,31 @@ void main()
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
 
-	int curr_frame = int(mode.y);
+	int new_frame = int(mode.y);
 
-	vec4 color = pixels[curr_frame][x][y];
-	vec4 curr_normal = normals_buffer[curr_frame][x][y];
+	vec4 color = pixels[new_frame][x][y];
+	vec4 new_normal = normals_buffer[new_frame][x][y];
 
-	if (curr_normal.w > 0.99) // if it is not a background pixel
+	if (new_normal.w > 0.99) // if it is not a background pixel
 	{
-		vec4 curr_campos = camera_location[curr_frame];
-		vec4 curr_w = w[curr_frame];
-		float curr_depth = depth_buffer[curr_frame][x][y].x;
+		float new_depth = depth_buffer[new_frame][x][y].x;
 
 		vec4 color_sum = vec4(0);
 		float denominator = 1;
 		for (int i = 1; i < NUM_FRAMES; i ++)
 		{
-			int oofus_frame = (curr_frame + NUM_FRAMES - i) % NUM_FRAMES;
-			vec4 oofus_normal = normals_buffer[oofus_frame][x][y];
-			// vec4 oofus_campos = camera_location[oofus_frame];
-			// vec4 oofus_w = w[oofus_frame];
-			float oofus_depth = depth_buffer[oofus_frame][x][y].x;
+			int curr_frame = (new_frame + NUM_FRAMES - i) % NUM_FRAMES;
+			vec4 curr_normal = normals_buffer[curr_frame][x][y];
+			float curr_depth = depth_buffer[curr_frame][x][y].x;
 
-			float normal_dot = dot(curr_normal, oofus_normal);
-			float depth_diff = (1 - clamp(abs(curr_depth - oofus_depth), 0, 1));
+			float normal_dot = dot(new_normal, curr_normal);
+			float depth_diff = (1 - clamp(abs(new_depth - curr_depth), 0, 1));
 
 			float coeff = normal_dot * depth_diff;
 
-			if (
-				coeff > 0.0096
-				// length(curr_campos.xyz - oofus_campos.xyz) < 1.2 &&
-				// dot(curr_w, oofus_w) > 0.99
-				)
+			if (coeff > 0.0096)
 			{
-				color_sum += coeff * pixels[oofus_frame][x][y];
+				color_sum += coeff * pixels[curr_frame][x][y];
 				denominator += coeff;
 			}
 			else
