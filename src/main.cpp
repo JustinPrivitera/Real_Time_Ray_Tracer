@@ -241,21 +241,21 @@ public:
 		radius = 3.5;
 		color = pigment(vec3(0.8,0.8,0.1));
 		sphere* mysphere2 = new sphere(center,radius,color);
-		mysphere2->reflectivity = 0.0;
+		mysphere2->reflectivity = 0.9;
 
 		// sphere
 		center = vec3(-4.5,4,-15);
 		radius = 4;
 		color = pigment(vec3(0.2,0.8,0.1));
 		sphere* mysphere3 = new sphere(center,radius,color);
-		mysphere3->reflectivity = 0.7;
+		mysphere3->reflectivity = 0.2;
 
 		// sphere
 		center = vec3(-8,-1,2);
 		radius = 1.5;
 		color = pigment(vec3(1,1,1));
 		sphere* mysphere4 = new sphere(center,radius,color);
-		mysphere4->reflectivity = 0.9;
+		mysphere4->reflectivity = 0;
 
 		// plane
 		vec3 normal = vec3(0, 1, 0);
