@@ -6,7 +6,7 @@
 #define WIDTH 320
 #define HEIGHT 240
 #define AA 10
-#define NUM_SHAPES 8
+#define NUM_SHAPES 2
 
 #define NUM_FRAMES 16
 
@@ -25,11 +25,18 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
-	vec4 light_pos; // for point lights only
+	// vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
+	// sphere:
+		// vec4: vec3 center, float radius
+		// vec4: vec3 nothing, float reflectivity
+		// vec4: vec3 color, int shape_id
+	// plane:
+		// vec4: vec3 normal, float distance from origin
+		// vec4: vec3 point in plane, float reflectivity
+		// vec4: vec3 color, int shape_id
+	
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
-	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
-	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];

@@ -30,7 +30,7 @@ using namespace glm;
 #define AA 10
 
 // number of scene objects
-#define NUM_SHAPES 8
+#define NUM_SHAPES 2
 
 #define NUM_FRAMES 16
 
@@ -49,11 +49,19 @@ public:
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
-	vec4 light_pos; // for point lights only
+	// vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
+	// sphere:
+		// vec4: vec3 center, float radius
+		// vec4: vec3 nothing, float reflectivity
+		// vec4: vec3 color, int shape_id
+	// plane:
+		// vec4: vec3 normal, float distance from origin
+		// vec4: vec3 point in plane, float reflectivity
+		// vec4: vec3 color, int shape_id
+
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
-	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
-	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
+	
 
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
@@ -162,8 +170,8 @@ class Application : public EventCallbacks
 public:
 
 	float aspect_ratio = ASPECT_RATIO;
-	int true_num_scene_objects = NUM_SHAPES - 3;
-	int light_movement = 0;
+	int true_num_scene_objects = NUM_SHAPES;
+	// int light_movement = 0;
 
 	scene myscene = init_scene();
 
@@ -209,77 +217,150 @@ public:
 
 	scene init_scene()
 	{
-		// sphere
-		vec3 center = vec3(0,-0.5,0);
-		float radius = 2;
-		pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
-		sphere* mysphere = new sphere(center,radius,color);
-		mysphere->reflectivity = 0.05;
+		// // sphere
+		// vec3 center = vec3(0,-0.5,0);
+		// float radius = 2;
+		// pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
+		// sphere* mysphere = new sphere(center,radius,color);
+		// mysphere->reflectivity = 0.5;
 
-		// sphere
-		center = vec3(4,-0.5,-2);
-		radius = 3.5;
-		color = pigment(vec3(0.8,0.8,0.1));
-		sphere* mysphere2 = new sphere(center,radius,color);
-		mysphere2->reflectivity = 0.03;
+		// // sphere
+		// center = vec3(4,-0.5,-2);
+		// radius = 3.5;
+		// color = pigment(vec3(0.8,0.8,0.1));
+		// sphere* mysphere2 = new sphere(center,radius,color);
+		// mysphere2->reflectivity = 0.0;
 
-		// sphere
-		center = vec3(-4.5,4,-15);
-		radius = 4;
-		color = pigment(vec3(0.2,0.8,0.1));
-		sphere* mysphere3 = new sphere(center,radius,color);
-		mysphere3->reflectivity = 0.5;
+		// // sphere
+		// center = vec3(-4.5,4,-15);
+		// radius = 4;
+		// color = pigment(vec3(0.2,0.8,0.1));
+		// sphere* mysphere3 = new sphere(center,radius,color);
+		// mysphere3->reflectivity = 0.7;
 
-		// sphere
-		center = vec3(-8,-1,2);
-		radius = 1.5;
-		color = pigment(vec3(1,1,1));
-		sphere* mysphere4 = new sphere(center,radius,color);
-		mysphere4->reflectivity = 0.8;
+		// // sphere
+		// center = vec3(-8,-1,2);
+		// radius = 1.5;
+		// color = pigment(vec3(1,1,1));
+		// sphere* mysphere4 = new sphere(center,radius,color);
+		// mysphere4->reflectivity = 0.9;
 
-		// plane
-		vec3 normal = vec3(0, 1, 0);
-		float distance_from_origin = -4;
-		color = pigment(vec3(0.3,0.0,0.5));
-		plane* myplane = new plane(normal, distance_from_origin, color);
+		// // plane
+		// vec3 normal = vec3(0, 1, 0);
+		// float distance_from_origin = -4;
+		// color = pigment(vec3(0.3,0.0,0.5));
+		// plane* myplane = new plane(normal, distance_from_origin, color);
 
-		// plane
-		normal = vec3(-1, 0, 0);
-		distance_from_origin = -8;
-		color = pigment(vec3(0.3,0.4,0.6));
-		plane* myplane1 = new plane(normal, distance_from_origin, color);
+		// // plane
+		// normal = vec3(-1, 0, 0);
+		// distance_from_origin = -8;
+		// color = pigment(vec3(0.3,0.4,0.6));
+		// plane* myplane1 = new plane(normal, distance_from_origin, color);
 
-		// plane
-		normal = vec3(1, 0, 0);
-		distance_from_origin = -8;
-		color = pigment(vec3(0.5,0.0,0.3));
-		plane* myplane2 = new plane(normal, distance_from_origin, color);
+		// // plane
+		// normal = vec3(1, 0, 0);
+		// distance_from_origin = -8;
+		// color = pigment(vec3(0.5,0.0,0.3));
+		// plane* myplane2 = new plane(normal, distance_from_origin, color);
 
-		// plane
-		normal = vec3(0, 0, 1);
-		distance_from_origin = -16;
-		color = pigment(vec3(0.7,0.7,0.2));
-		plane* myplane3 = new plane(normal, distance_from_origin, color);
+		// // plane
+		// normal = vec3(0, 0, 1);
+		// distance_from_origin = -16;
+		// color = pigment(vec3(0.7,0.7,0.2));
+		// plane* myplane3 = new plane(normal, distance_from_origin, color);
 		
-		// shapes vector
-		vector<shape*> myshapes = vector<shape*>();
-		myshapes.push_back(mysphere);
-		myshapes.push_back(mysphere2);
-		myshapes.push_back(mysphere3);
-		myshapes.push_back(mysphere4);
-		myshapes.push_back(myplane);
-		myshapes.push_back(myplane1);
-		myshapes.push_back(myplane2);
-		myshapes.push_back(myplane3);
+		// // shapes vector
+		// vector<shape*> myshapes = vector<shape*>();
+		// myshapes.push_back(mysphere);
+		// myshapes.push_back(mysphere2);
+		// myshapes.push_back(mysphere3);
+		// myshapes.push_back(mysphere4);
+		// myshapes.push_back(myplane);
+		// myshapes.push_back(myplane1);
+		// myshapes.push_back(myplane2);
+		// myshapes.push_back(myplane3);
 
-		if (myshapes.size() != NUM_SHAPES)
-			cerr << "num shapes mismatch" << endl;
+		// if (myshapes.size() != NUM_SHAPES)
+		// 	cerr << "num shapes mismatch" << endl;
 
-		// light sources
+		// // light sources
 		vector<light_source> lights = vector<light_source>();
 
+		// // make scene
+		// scene scene1 = scene(myshapes,lights);
+
+		////////////////////////////////////////////////////////
+
+		vector<shape*> myshapes2 = vector<shape*>();
+
+		// sphere
+		vec3 center = vec3(0,0,0);
+		float radius = 2;
+		pigment color = pigment(vec3(0.2,0.6,0.8)); // TODO rip out pigments
+		sphere* s2sphere1 = new sphere(center,radius,color);
+		s2sphere1->reflectivity = 0.0;
+
+		// sphere
+		center = vec3(0,-35,0);
+		radius = 33;
+		color = pigment(vec3(0.1,0.1,0.8));
+		sphere* s2sphere2 = new sphere(center,radius,color);
+
+		myshapes2.push_back(s2sphere1);
+		myshapes2.push_back(s2sphere2);
+
 		// make scene
-		return scene(myshapes,lights);
+		scene scene2 = scene(myshapes2,lights);
+
+		////////////////////////////////
+
+		vector<shape*> myshapes3 = vector<shape*>();
+
+		// sphere
+		center = vec3(0,0,0);
+		radius = 2;
+		color = pigment(vec3(0.2,0.6,0.8)); // TODO rip out pigments
+		sphere* s3sphere1 = new sphere(center,radius,color);
+		s3sphere1->reflectivity = 0.0;
+
+		// sphere
+		center = vec3(0,-35,0);
+		radius = 33;
+		color = pigment(vec3(0.8,0.6,0.2));
+		sphere* s3sphere2 = new sphere(center,radius,color);
+		s3sphere2->reflectivity = 0.0;
+
+		myshapes3.push_back(s3sphere1);
+		myshapes3.push_back(s3sphere2);
+
+		// make scene
+		scene scene3 = scene(myshapes3,lights);
+
+		////////////////////////////////
+
+		vector<shape*> myshapes4 = vector<shape*>();
+
+		// sphere
+		center = vec3(0,0,0);
+		radius = 2;
+		color = pigment(vec3(0.2,0.6,0.8)); // TODO rip out pigments
+		sphere* s4sphere1 = new sphere(center,radius,color);
+		s4sphere1->reflectivity = 0.4;
+
+		// sphere
+		center = vec3(0,-35,0);
+		radius = 33;
+		color = pigment(vec3(0.8,0.6,0.2));
+		sphere* s4sphere2 = new sphere(center,radius,color);
+		s4sphere2->reflectivity = 0.8;
+
+		myshapes4.push_back(s4sphere1);
+		myshapes4.push_back(s4sphere2);
+
+		// make scene
+		scene scene4 = scene(myshapes4,lights);
+
+		return scene4;
 	}
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -289,13 +370,13 @@ public:
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
 
-		// toggle light movement
-		if (key == GLFW_KEY_L && action == GLFW_PRESS)
-		{
-			light_movement = !light_movement;
-			if (light_movement)
-				ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
-		}
+		// // toggle light movement
+		// if (key == GLFW_KEY_L && action == GLFW_PRESS)
+		// {
+		// 	light_movement = !light_movement;
+		// 	if (light_movement)
+		// 		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+		// }
 		
 		if (key == GLFW_KEY_W && action == GLFW_PRESS)
 		{
@@ -391,7 +472,7 @@ public:
 			if (mycam.p)
 				true_num_scene_objects = NUM_SHAPES;
 			else
-				true_num_scene_objects = NUM_SHAPES - 3;
+				true_num_scene_objects = NUM_SHAPES;
 		}
 
 		// toggle fullscreen aspect ratio
@@ -545,7 +626,7 @@ public:
 		// maybe there is a better place to store these important default values...
 		// instead of buried in computeInitGeom
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
-		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+		// ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
 		// ssbo_CPUMEM.light_pos = vec4(-4, 100, 200, 0);
 
 		// must pack simple shapes into buffer
@@ -664,14 +745,14 @@ public:
 		static int flap = 0;
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
-		if (light_movement)
-		{
-			ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
-			if (ssbo_CPUMEM.light_pos.x > 50)
-				ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
-		}
-		else
-			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
+		// if (light_movement)
+		// {
+		// 	ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
+		// 	if (ssbo_CPUMEM.light_pos.x > 50)
+		// 		ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
+		// }
+		// else
+		// 	ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
 		
 		ssbo_CPUMEM.mode.y = flap;
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;

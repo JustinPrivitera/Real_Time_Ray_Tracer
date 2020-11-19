@@ -6,7 +6,7 @@
 #define HEIGHT 240
 #define RECURSION_DEPTH 30
 #define AA 10
-#define NUM_SHAPES 8
+#define NUM_SHAPES 2
 
 #define NUM_FRAMES 16
 
@@ -31,11 +31,18 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
-	vec4 light_pos; // for point lights only
+	// vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
+	// sphere:
+		// vec4: vec3 center, float radius
+		// vec4: vec3 nothing, float reflectivity
+		// vec4: vec3 color, int shape_id
+	// plane:
+		// vec4: vec3 normal, float distance from origin
+		// vec4: vec3 point in plane, float reflectivity
+		// vec4: vec3 color, int shape_id
+	
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
-	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
-	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
@@ -131,147 +138,6 @@ vec3 sphere_compute_normal(vec3 pos, int shape_index)
 	return normalize(pos - simple_shapes[shape_index][0].xyz);
 }
 
-bool shadow_ray(vec3 pos)
-{
-	double t;
-
-	vec3 light_vector = light_pos.xyz - pos;
-	vec3 l = normalize(light_vector);
-	float len = length(light_vector);
-	// float t_max = light_vector.x / l.x;
-	// new ray with p = pos and dir = l
-
-	// fixes shadow issue
-	vec3 new_pos = pos + 0.01 * l;
-
-	for (int i = 0; i < int(mode.z); i ++)
-	{
-		t = eval_ray(new_pos, l, i);
-		if (t > 0.0001)
-			if (length(t * l) < len)
-				return false; // we are in shadow
-	}
-	return true;
-}
-
-float shadow_ray_intensity(vec3 pos)
-{
-	// one issue is that we currently get the first hit, not the closest hit
-	// for accurate shadow blending we want the closest hit
-
-	// the next mystery issue is the backside of the spheres being shadowed improperly
-	// the shadow side of spheres will send rays and hit the front of the sphere
-	// so the inverse normal is pointed the wrong way
-	// so don't invert the normal, and instead just take absolute value of the dot product
-
-	// all shadowed regions should maybe also take into account the regular light at that pos,
-	// then scale appropriately
-	// hmmmm that's not trivial to implement :(
-
-	float t;
-
-	vec3 light_vector = light_pos.xyz - pos;
-	vec3 l = normalize(light_vector);
-	float len = length(light_vector);
-	// new ray with p = pos and dir = l
-
-	// fixes shadow issue
-	vec3 new_pos = pos + 0.01 * l;
-
-	for (int i = 0; i < int(mode.z); i ++)
-	{
-		t = eval_ray(new_pos, l, i);
-		if (t > 0.0001)
-		{
-			if (length(t * l) < len)
-			{
-				vec3 curr_pos = new_pos + t * l;
-				int shape_id = int(simple_shapes[i][2].w);
-				vec3 normal;
-				if (shape_id == SPHERE_ID)
-					normal = sphere_compute_normal(curr_pos, i);
-				else if (shape_id == PLANE_ID)
-					normal = simple_shapes[i][0].xyz;
-				else {} // other shapes... this is not yet implemented
-				return clamp(1 - dot(-1 * normal, l), 0, 1);
-
-
-				// return false; // we are in shadow
-			}
-		}
-	}
-	return -1;
-}
-
-vec4 phong(vec3 dir) // phong diffuse lighting
-{
-	vec4 result_color;
-	// basic ray casting
-	float t = -1;
-	float res_t;
-	int ind = -1;
-
-	// the following math just gets the closest collision
-	for (int i = 0; i < int(mode.z); i ++)
-	{
-		res_t = eval_ray(camera_location[int(mode.y)].xyz, dir, i);
-		if (res_t > 0)
-		{
-			if (res_t < t || t < 0)
-			{
-				t = res_t; // t is always the smallest t value so far
-				ind = i;
-			}
-		}
-	}
-	if (ind == -1) // ray intersected no geometry
-	{
-		result_color = background;
-	}
-	else // ray intersected something; we get it's color and write out
-	{
-		// ok it'd be nice to have default code for no light sources
-		// result_color = simple_shapes[ind][2];
-
-		// I guess we assume there is a light source for now
-		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
-		bool lit = shadow_ray(curr_pos);
-		int shape_id = int(simple_shapes[ind][2].w);
-		vec3 normal;
-		if (shape_id == SPHERE_ID)
-		{
-			normal = sphere_compute_normal(curr_pos, ind);
-		}
-		else if (shape_id == PLANE_ID)
-		{
-			normal = simple_shapes[ind][0].xyz;
-		}
-		else
-		{
-			// other shapes... this is not yet implemented
-		}
-
-		if (lit)
-		{
-			vec3 l = normalize(light_pos.xyz - curr_pos);
-			float spec = pow(clamp(dot(normalize(l - dir), normal), 0, 1), 500);
-
-			result_color = vec4(
-				simple_shapes[ind][2].xyz
-					* clamp(dot(normal, l), PHONG_SHADOW_MIN, 1.0),
-				0);
-
-			result_color += vec4(spec * 1);
-		}
-		else
-		{
-			// result_color = vec4(0); // we are in shadow
-			result_color = vec4(simple_shapes[ind][2].xyz * vec3(PHONG_SHADOW_MIN), 0);
-		}
-	}
-	return result_color;
-}
-
 vec3 get_pt_within_unit_sphere(int aa)
 {
 	int first = aa * 2;
@@ -341,11 +207,17 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 		normals_buffer[flap][x][y] = vec4(normal, 1);
 		// depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
 
-		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
-		// array[2] = vec4(R, ind);
+
+		float reflect = simple_shapes[ind][1].w;
+		if (reflect > 0.999) // no reflection
+			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
+		else // reflection
+		{
+			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
+			array[2] = vec4(normalize(R + reflect * get_pt_within_unit_sphere(aa)), ind);
+		}
 	}
 	else // return background color
 	{
@@ -401,11 +273,17 @@ void foggy_helper(inout vec4 array[3], int depth, int aa)
 			// other shapes... this is not yet implemented
 		}
 
-		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
-		// array[2] = vec4(R, ind);
+
+		float reflect = simple_shapes[ind][1].w;
+		if (reflect > 0.999) // no reflection
+			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
+		else // reflection
+		{
+			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
+			array[2] = vec4(normalize(R + reflect * get_pt_within_unit_sphere(aa)), ind);
+		}
 	}
 	else // return background color
 	{
@@ -433,128 +311,6 @@ vec4 foggy(vec3 dir, int aa)
 		foggy_helper(foggy_buffer, i, aa);
 		result_color = result_color * foggy_buffer[0];
 		if (foggy_buffer[1].w == 1) // the stop bit was set
-			break;
-		i -= 1;
-	}
-	return result_color;
-}
-
-// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + reflectivity
-void hybrid_helper(inout vec4 array[3], int depth)
-{
-	if (depth <= 0)
-		array[0] = vec4(0);
-
-	vec3 pos = array[1].xyz;
-	vec3 dir = array[2].xyz;
-	// int last_ind = int(array[2].w);
-
-	float t = -1;
-	float res_t;
-	int ind = -1;
-
-	// the following math just gets the closest collision
-	for (int i = 0; i < int(mode.z); i ++)
-	{
-		res_t = eval_ray(pos, dir, i);
-		if (res_t > 0.001)
-		{
-			if (res_t < t || t < 0)
-			{
-				t = res_t; // t is always the smallest t value so far
-				ind = i;
-			}
-		}
-	}
-	if (ind == -1) // ray intersected no geometry so return background color
-	{
-		array[0] = background;
-		array[1].w = 1; // this means stop the recursion
-	}
-	else // we hit something
-	{
-		vec4 attenuation = simple_shapes[ind][2];
-		vec3 curr_pos = pos + t * dir;
-		bool lit = shadow_ray(curr_pos);
-
-		// float intensity = shadow_ray_intensity(curr_pos);
-
-		int shape_id = int(attenuation.w);
-		vec3 normal;
-		if (shape_id == SPHERE_ID)
-			normal = sphere_compute_normal(curr_pos, ind);
-		else if (shape_id == PLANE_ID)
-			normal = simple_shapes[ind][0].xyz;
-		else {} // other shapes... this is not yet implemented
-
-		// PHONG
-		// add shadow feeler results to color at point
-		if (lit)
-		// if (intensity < 0)
-		{
-			vec3 l = normalize(light_pos.xyz - curr_pos);
-			float spec = pow(clamp(dot(normalize(l - dir), normal), 0, 1), 500);
-
-			attenuation = vec4(
-				attenuation
-					* clamp(
-						dot(normal, l), 
-						PHONG_SHADOW_MIN, 
-						1.0));
-
-			attenuation += vec4(spec * 1);
-		}
-		else // we are in shadow
-		{
-			// attenuation = attenuation * intensity * vec4(PHONG_SHADOW_MIN);
-			attenuation = attenuation * vec4(PHONG_SHADOW_MIN);
-		}
-
-		// REFLECTION
-		float reflectivity = simple_shapes[ind][1].w;
-		if (reflectivity < 0.001) // not reflection
-		{
-			array[1].w = 1; // stop recursion
-		}
-		else // reflection
-		{
-			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
-			array[1].xyz = curr_pos;
-			array[2] = vec4(R, reflectivity);
-		}
-
-		array[0] = attenuation;
-	}
-}
-
-// every ray bounce, find phong lighting at point
-// then if it is reflective, add phong lighting to a new bounce times the current reflection constant
-// otherwise, return phong lighting
-
-vec4 hybrid(vec3 dir)
-{
-	// vec4 result_color = vec4(1);
-	vec4 lighting_buffer[3];
-
-	lighting_buffer[1].xyz = camera_location[int(mode.y)].xyz;
-	lighting_buffer[1].w = 0; // stop bit is set to 0
-	lighting_buffer[2] = vec4(dir, 0);
-
-	// do the first iteration outside
-	hybrid_helper(lighting_buffer, RECURSION_DEPTH);
-	float c = lighting_buffer[2].w;
-	vec4 result_color = lighting_buffer[0];
-
-	// if (lighting_buffer[1].w == 1) // the stop bit was set
-	// 	return result_color;
-
-	int i = RECURSION_DEPTH - 1;
-	while (i > 0)
-	{
-		hybrid_helper(lighting_buffer, i);
-		result_color = (result_color + c * lighting_buffer[0]) / (1 + c);
-		c = c * lighting_buffer[2].w;
-		if (lighting_buffer[1].w == 1) // the stop bit was set
 			break;
 		i -= 1;
 	}

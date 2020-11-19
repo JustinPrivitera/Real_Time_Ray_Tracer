@@ -15,11 +15,11 @@ class shape
 public:
 	shape() : p(pigment())
 	{
-		reflectivity = 0;
+		reflectivity = 1;
 	}
 	shape(pigment p) : p(p)
 	{
-		reflectivity = 0;
+		reflectivity = 1;
 	}
 	// shape() : p(pigment()), f(finish()) {}
 	// shape(pigment p) : p(p), f(finish()) {}
