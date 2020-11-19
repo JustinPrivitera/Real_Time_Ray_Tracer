@@ -48,16 +48,24 @@ public:
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location; // ray casting vector
 	vec4 background; // represents the background color
-	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
+	vec4 simple_shapes[NUM_SHAPES][5]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
 		// vec4: vec3 nothing, bool emissive?
+		// vec4: nothing
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
 		// vec4: vec3 nothing, bool emissive?
+		// vec4: nothing
 		// vec4: vec3 point in plane, float reflectivity
+		// vec4: vec3 color, int shape_id
+	// rectangle:
+		// vec4: vec3 normal, float nothing
+		// vec4: vec3 up, bool emmissive?
+		// vec4: vec3 right, float nothing
+		// vec4: vec3 lower left corner, float reflectivity
 		// vec4: vec3 color, int shape_id
 
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
@@ -368,6 +376,14 @@ public:
 		sphere* s5sphere1 = new sphere(center,radius,color);
 		s5sphere1->emissive = true;
 
+		// // rectangle
+		// vec3 llc = vec3(4,6,4);
+		// vec3 up = vec3(-8,0,0);
+		// vec3 right = vec3(0,0,-8);
+		// color = pigment(vec3(1.5,1.5,1.5));
+		// rectangle* s5rect1 = new rectangle(llc, right, up, color);
+		// s5rect1->emissive = true;
+
 		// sphere
 		center = vec3(0,0,0);
 		radius = 2;
@@ -387,6 +403,61 @@ public:
 
 		// make scene
 		scene scene5 = scene(myshapes5,lights);
+
+		////////////////////////////////
+
+		// vector<shape*> myshapes6 = vector<shape*>();
+
+		// // sphere
+		// center = vec3(0,12,0);
+		// radius = 6;
+		// color = pigment(vec3(4,4,4)); // TODO rip out pigments
+		// sphere* s6sphere1 = new sphere(center,radius,color);
+		// s6sphere1->emissive = true;
+
+		// // sphere
+		// center = vec3(-8,0,0);
+		// radius = 2;
+		// color = pigment(vec3(8, 8, 16)); // TODO rip out pigments
+		// sphere* s6sphere2 = new sphere(center,radius,color);
+		// s6sphere2->emissive = true;
+
+		// // sphere
+		// center = vec3(0,0,0);
+		// radius = 2;
+		// color = pigment(vec3(0.2,0.6,0.8));
+		// sphere* s6sphere3 = new sphere(center,radius,color);
+		// s6sphere3->reflectivity = 0.4;
+
+		// // sphere
+		// center = vec3(0,-35,0);
+		// radius = 33;
+		// color = pigment(vec3(0.8,0.6,0.2));
+		// sphere* s6sphere4 = new sphere(center,radius,color);
+
+		// // sphere
+		// center = vec3(2,1,3);
+		// radius = 0.5;
+		// color = pigment(vec3(1,1,1));
+		// sphere* s6sphere5 = new sphere(center,radius,color);
+		// s6sphere5->reflectivity = 0.0;
+
+		// // sphere
+		// center = vec3(4.5, 0.2, 5);
+		// radius = 2.25;
+		// color = pigment(vec3(1,1,1));
+		// sphere* s6sphere6 = new sphere(center,radius,color);
+		// s6sphere6->reflectivity = 0.0;
+
+		// myshapes6.push_back(s6sphere1);
+		// myshapes6.push_back(s6sphere2);
+		// myshapes6.push_back(s6sphere3);
+		// myshapes6.push_back(s6sphere4);
+		// myshapes6.push_back(s6sphere5);
+		// myshapes6.push_back(s6sphere6);
+
+		// // make scene
+		// scene scene6 = scene(myshapes6,lights);
 
 		return scene5;
 	}
@@ -670,10 +741,17 @@ public:
 				float emissive = curr->emissive;
 				int id = SPHERE_ID;
 
+				// sphere:
+					// vec4: vec3 center, float radius
+					// vec4: vec3 nothing, bool emissive?
+					// vec4: nothing
+					// vec4: vec3 nothing, float reflectivity
+					// vec4: vec3 color, int shape_id
+
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
 				ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
-				ssbo_CPUMEM.simple_shapes[i][2].w = reflectivity;
-				ssbo_CPUMEM.simple_shapes[i][3] = vec4(color, id);
+				ssbo_CPUMEM.simple_shapes[i][3].w = reflectivity;
+				ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
 			}
 			if (curr->id() == PLANE_ID)
 			{
@@ -685,10 +763,41 @@ public:
 				float emissive = curr->emissive;
 				int id = PLANE_ID;
 
+				// plane:
+					// vec4: vec3 normal, float distance from origin
+					// vec4: vec3 nothing, bool emissive?
+					// vec4: nothing
+					// vec4: vec3 point in plane, float reflectivity
+					// vec4: vec3 color, int shape_id
+
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
 				ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
-				ssbo_CPUMEM.simple_shapes[i][2] = vec4(p0, reflectivity);
-				ssbo_CPUMEM.simple_shapes[i][3] = vec4(color, id);
+				ssbo_CPUMEM.simple_shapes[i][3] = vec4(p0, reflectivity);
+				ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
+			}
+			if (curr->id() == RECTANGLE_ID)
+			{
+				vec3 normal = ((rectangle*) curr)->normal;
+				vec3 right = ((rectangle*) curr)->right;
+				vec3 up = ((rectangle*) curr)->up;
+				vec3 color = ((rectangle*) curr)->p.rgb;
+				vec3 llc = ((rectangle*) curr)->llv;
+				float reflectivity = curr->reflectivity;
+				float emissive = curr->emissive;
+				int id = RECTANGLE_ID;
+
+				// rectangle:
+					// 	vec4: vec3 normal, float nothing
+					// 	vec4: vec3 up, bool emmissive?
+					// 	vec4: vec3 right, float nothing
+					// 	vec4: vec3 lower left corner, float reflectivity
+					// 	vec4: vec3 color, int shape_id
+
+				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, 0);
+				ssbo_CPUMEM.simple_shapes[i][1] = vec4(up, emissive);
+				ssbo_CPUMEM.simple_shapes[i][2] = vec4(right, 0);
+				ssbo_CPUMEM.simple_shapes[i][3] = vec4(llc, reflectivity);
+				ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
 			}
 		}
 

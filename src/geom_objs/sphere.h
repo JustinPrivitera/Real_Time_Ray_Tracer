@@ -27,11 +27,6 @@ public:
 	// pigment p;
 };
 
-// axis_aligned_box sphere::bounding_box() const
-// {
-// 	return axis_aligned_box(-1 * vec3(radius) + location, vec3(radius) + location, pigment());
-// }
-
 vec3 sphere::get_location() const {
 	return location;
 }

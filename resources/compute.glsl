@@ -12,6 +12,7 @@
 
 #define SPHERE_ID 1
 #define PLANE_ID 5
+#define RECTANGLE_ID 3
 // others
 
 #define PHONG_SHADOW_MIN 0.06
@@ -30,16 +31,24 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location; // ray casting vector
 	vec4 background; // represents the background color
-	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
+	vec4 simple_shapes[NUM_SHAPES][5]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
 		// vec4: vec3 nothing, bool emissive?
+		// vec4: nothing
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
 		// vec4: vec3 nothing, bool emissive?
+		// vec4: nothing
 		// vec4: vec3 point in plane, float reflectivity
+		// vec4: vec3 color, int shape_id
+	// rectangle:
+		// vec4: vec3 normal, float nothing
+		// vec4: vec3 up, bool emmissive?
+		// vec4: vec3 right, float nothing
+		// vec4: vec3 lower left corner, float reflectivity
 		// vec4: vec3 color, int shape_id
 
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
@@ -51,6 +60,43 @@ layout (std430, binding = 0) volatile buffer shader_data
 };
 
 uniform int sizeofbuffer;
+
+float det(mat2 matrix) 
+{
+    return matrix[0].x * matrix[1].y - matrix[0].y * matrix[1].x;
+}
+
+mat3 inverse(mat3 matrix) 
+{
+    vec3 row0 = matrix[0];
+    vec3 row1 = matrix[1];
+    vec3 row2 = matrix[2];
+
+    vec3 minors0 = vec3(
+        det(mat2(row1.y, row1.z, row2.y, row2.z)),
+        det(mat2(row1.z, row1.x, row2.z, row2.x)),
+        det(mat2(row1.x, row1.y, row2.x, row2.y))
+    );
+    vec3 minors1 = vec3(
+        det(mat2(row2.y, row2.z, row0.y, row0.z)),
+        det(mat2(row2.z, row2.x, row0.z, row0.x)),
+        det(mat2(row2.x, row2.y, row0.x, row0.y))
+    );
+    vec3 minors2 = vec3(
+        det(mat2(row0.y, row0.z, row1.y, row1.z)),
+        det(mat2(row0.z, row0.x, row1.z, row1.x)),
+        det(mat2(row0.x, row0.y, row1.x, row1.y))
+    );
+
+    mat3 adj = transpose(mat3(minors0, minors1, minors2));
+
+    return (1.0 / dot(row0, minors0)) * adj;
+}
+
+vec3 solve(mat3 m, vec3 b)
+{
+	return inverse(m) * b;
+}
 
 float random(vec2 st) 
 {
@@ -114,13 +160,34 @@ float plane_eval_ray(vec3 pos, vec3 dir, int shape_index)
 	float denom = dot(normal, dir);
 	if (denom < 0.001 && denom > -0.001)
 		return -1;
-	vec3 p0 = simple_shapes[shape_index][2].xyz;
+	vec3 p0 = simple_shapes[shape_index][3].xyz;
 	return dot(normal, p0 - pos) / denom;
+}
+
+float rectangle_eval_ray(vec3 pos, vec3 dir, int shape_index)
+{
+	vec3 normal = simple_shapes[shape_index][0].xyz;
+	float denom = dot(normal, dir);
+	if (denom < 0.001 && denom > -0.001)
+		return -1;
+	vec3 llc = simple_shapes[shape_index][3].xyz;
+	float t = dot(normal, llc - pos) / denom;
+	if (t <= 0)
+		return -1;
+	vec3 pt = pos + t * dir;
+	vec3 right = simple_shapes[shape_index][2].xyz;
+	vec3 up = simple_shapes[shape_index][1].xyz;
+	mat3 A = mat3(right, up, llc);
+	vec3 vect = solve(A, pt);
+	if (vect.x < 1 && vect.x > -0.001 && vect.y < 1 && vect.y > -0.001 && vect.z > 0)
+		return t;
+	else
+		return -1;
 }
 
 float eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
-	int shape_id = int(simple_shapes[shape_index][3].w);
+	int shape_id = int(simple_shapes[shape_index][4].w);
 	if (shape_id == SPHERE_ID)
 	{
 		return sphere_eval_ray(pos, dir, shape_index);
@@ -128,6 +195,10 @@ float eval_ray(vec3 pos, vec3 dir, int shape_index)
 	if (shape_id == PLANE_ID)
 	{
 		return plane_eval_ray(pos, dir, shape_index);
+	}
+	if (shape_id == RECTANGLE_ID)
+	{
+		return rectangle_eval_ray(pos, dir, shape_index);
 	}
 	// other shapes?
 	return -1;
@@ -191,7 +262,7 @@ void ambient_occlusion_helper_first_time(inout vec4 array[3], int depth, int aa)
 
 	if (ind != -1) // we must have hit something
 	{
-		vec4 attenuation = simple_shapes[ind][3];
+		vec4 attenuation = simple_shapes[ind][4];
 
 		if (simple_shapes[ind][1].w > 0.99) // is this shape emmissive?
 		{
@@ -218,7 +289,7 @@ void ambient_occlusion_helper_first_time(inout vec4 array[3], int depth, int aa)
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
 
-		float reflect = simple_shapes[ind][2].w;
+		float reflect = simple_shapes[ind][3].w;
 		if (reflect > 0.999) // no reflection
 			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
 		else // reflection
@@ -268,7 +339,7 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 
 	if (ind != -1) // we must have hit something
 	{
-		vec4 attenuation = simple_shapes[ind][3];
+		vec4 attenuation = simple_shapes[ind][4];
 		if (simple_shapes[ind][1].w > 0.9) // is this shape emmissive?
 		{
 			array[0] = attenuation;
@@ -291,7 +362,7 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
 
-		float reflect = simple_shapes[ind][2].w;
+		float reflect = simple_shapes[ind][3].w;
 		if (reflect > 0.999) // no reflection
 			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
 		else // reflection
