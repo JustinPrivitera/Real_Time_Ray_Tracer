@@ -339,26 +339,30 @@ vec4 foggy(vec3 dir, int aa)
 
 void main()
 {
-	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
+	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 
 	vec4 result_color = vec4(0);
-	
-	// ray direction calculation
-	float hp = float(pixel_coords.x) / WIDTH;
-	float vp = float(pixel_coords.y) / HEIGHT;
-	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
-	// get color based on chosen lighting algorithm
-	
-	// if (mode.x == 1)
-		// result_color = phong(dir);
-	// else if (mode.x == 2)
-		// result_color = foggy(dir);
-	// else
-		// result_color = hybrid(dir);
+	vec2 randy;
 
 	for (int aa = 0; aa < AA; aa ++)
 	{
+		int first = aa * 2;
+		int second = first + 1;
+		vec2 seed1 = vec2(rand_buffer[second].x, rand_buffer[first].y);
+		vec2 seed2 = vec2(rand_buffer[first].z, rand_buffer[second].w);
+		vec2 seed3 = vec2(rand_buffer[first].x, rand_buffer[second].y);
+		vec2 seed4 = vec2(rand_buffer[second].z, rand_buffer[first].w);
+
+		randy = normalize(vec2(
+				random(seed1 + xy * seed2 - xy + seed3), 
+				random(seed4 * xy - seed3 * xy * seed2))) / 4 - vec2(0.125);
+		
+		// ray direction calculation
+		float hp = (float(xy.x) + randy.x) / WIDTH;
+		float vp = (float(xy.y) + randy.y) / HEIGHT;
+		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+
 		result_color += foggy(dir, aa);
 	}
 
@@ -369,6 +373,6 @@ void main()
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 	// write image
-	pixels[int(mode.y)][pixel_coords.x][pixel_coords.y] = result_color;
+	pixels[int(mode.y)][xy.x][xy.y] = result_color;
 	return;
 }

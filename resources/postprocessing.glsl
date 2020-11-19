@@ -73,8 +73,8 @@ void main()
 			vec4 oofus_w = w[oofus_frame];
 
 			if (
-				dot(curr_normal, oofus_normal) > 0.7 && 
-				length(curr_campos.xyz - oofus_campos.xyz) < 0.1 &&
+				dot(curr_normal, oofus_normal) > 0.96 && 
+				length(curr_campos.xyz - oofus_campos.xyz) < 1.2 &&
 				dot(curr_w, oofus_w) > 0.99)
 			{
 				color_sum += pixels[oofus_frame][x][y];
