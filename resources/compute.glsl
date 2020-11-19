@@ -2,10 +2,13 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
-#define WIDTH 640
-#define HEIGHT 480
+#define WIDTH 320
+#define HEIGHT 240
 #define RECURSION_DEPTH 30
+#define AA 20
 #define NUM_SHAPES 8
+
+#define NUM_FRAMES 16
 
 #define SPHERE_ID 1
 #define PLANE_ID 5
@@ -22,24 +25,24 @@ layout(local_size_x = 1, local_size_y = 1) in;
 layout (std430, binding = 0) volatile buffer shader_data
 {
 	vec4 mode; // utility
-	vec4 w; // ray casting vector
-	vec4 u; // ray casting vector
-	vec4 v; // ray casting vector
+	vec4 w[NUM_FRAMES]; // ray casting vector
+	// vec4 u; // ray casting vector
+	// vec4 v; // ray casting vector
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
-	vec4 camera_location; // ray casting vector
+	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
 	vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
-	vec4 rand_buffer[2]; // stores random numbers needed for ray bounces
+	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// g buffer
-	vec4 pixels[2][WIDTH][HEIGHT];
-	vec4 normals_buffer[2][WIDTH][HEIGHT];
-	vec4 depth_buffer[2][WIDTH][HEIGHT];
+	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
+	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -213,7 +216,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	// the following math just gets the closest collision
 	for (int i = 0; i < int(mode.z); i ++)
 	{
-		res_t = eval_ray(camera_location.xyz, dir, i);
+		res_t = eval_ray(camera_location[int(mode.y)].xyz, dir, i);
 		if (res_t > 0)
 		{
 			if (res_t < t || t < 0)
@@ -233,7 +236,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 		// result_color = simple_shapes[ind][2];
 
 		// I guess we assume there is a light source for now
-		vec3 curr_pos = camera_location.xyz + t * dir;
+		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
 		bool lit = shadow_ray(curr_pos);
 		int shape_id = int(simple_shapes[ind][2].w);
 		vec3 normal;
@@ -271,12 +274,14 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	return result_color;
 }
 
-vec3 get_pt_within_unit_sphere()
+vec3 get_pt_within_unit_sphere(int i)
 {
-	vec2 seed1 = vec2(rand_buffer[0].x, rand_buffer[0].y);
-	vec2 seed2 = vec2(rand_buffer[0].z, rand_buffer[0].w);
-	vec2 seed3 = vec2(rand_buffer[1].x, rand_buffer[1].y);
-	vec2 seed4 = vec2(rand_buffer[1].z, rand_buffer[1].w);
+	int first = i * 2;
+	int second = first + 1;
+	vec2 seed1 = vec2(rand_buffer[first].x, rand_buffer[first].y);
+	vec2 seed2 = vec2(rand_buffer[first].z, rand_buffer[first].w);
+	vec2 seed3 = vec2(rand_buffer[second].x, rand_buffer[second].y);
+	vec2 seed4 = vec2(rand_buffer[second].z, rand_buffer[second].w);
 
 	vec2 xy = gl_GlobalInvocationID.xy;
 
@@ -287,7 +292,7 @@ vec3 get_pt_within_unit_sphere()
 }
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void foggy_helper_first_time(inout vec4 array[3], int depth)
+void foggy_helper_first_time(inout vec4 array[3], int depth, int i)
 // vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	uint x = gl_GlobalInvocationID.x;
@@ -323,7 +328,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth)
 	if (ind != -1) // we must have hit something
 	{
 		vec4 attenuation = simple_shapes[ind][2];
-		vec3 curr_pos = camera_location.xyz + t * dir;
+		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
 		if (id == SPHERE_ID)
@@ -341,7 +346,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth)
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(normalize(get_pt_within_unit_sphere() + normal), 0);
+		array[2] = vec4(normalize(get_pt_within_unit_sphere(i) + normal), 0);
 		// array[2] = vec4(R, ind);
 	}
 	else // return background color
@@ -355,7 +360,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth)
 }
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void foggy_helper(inout vec4 array[3], int depth)
+void foggy_helper(inout vec4 array[3], int depth, int i)
 // vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	if (depth <= 0)
@@ -386,7 +391,7 @@ void foggy_helper(inout vec4 array[3], int depth)
 	if (ind != -1) // we must have hit something
 	{
 		vec4 attenuation = simple_shapes[ind][2];
-		vec3 curr_pos = camera_location.xyz + t * dir;
+		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
 		if (id == SPHERE_ID)
@@ -401,7 +406,7 @@ void foggy_helper(inout vec4 array[3], int depth)
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(normalize(get_pt_within_unit_sphere() + normal), 0);
+		array[2] = vec4(normalize(get_pt_within_unit_sphere(i) + normal), 0);
 		// array[2] = vec4(R, ind);
 	}
 	else // return background color
@@ -411,23 +416,23 @@ void foggy_helper(inout vec4 array[3], int depth)
 	}
 }
 
-vec4 foggy(vec3 dir)
+vec4 foggy(vec3 dir, int aa)
 {
 	// vec4 result_color = vec4(1);
 	vec4 foggy_buffer[3];
 
-	foggy_buffer[1].xyz = camera_location.xyz;
+	foggy_buffer[1].xyz = camera_location[int(mode.y)].xyz;
 	foggy_buffer[1].w = 0; // stop bit is set to 0
 	foggy_buffer[2] = vec4(dir, 0);
 
 	// do the first iteration outside
-	foggy_helper_first_time(foggy_buffer, RECURSION_DEPTH);
+	foggy_helper_first_time(foggy_buffer, RECURSION_DEPTH, aa);
 	vec4 result_color = foggy_buffer[0];
 
 	int i = RECURSION_DEPTH - 1;
 	while (i > 0)
 	{
-		foggy_helper(foggy_buffer, i);
+		foggy_helper(foggy_buffer, i, aa);
 		result_color = result_color * foggy_buffer[0];
 		if (foggy_buffer[1].w == 1) // the stop bit was set
 			break;
@@ -533,7 +538,7 @@ vec4 hybrid(vec3 dir)
 	// vec4 result_color = vec4(1);
 	vec4 lighting_buffer[3];
 
-	lighting_buffer[1].xyz = camera_location.xyz;
+	lighting_buffer[1].xyz = camera_location[int(mode.y)].xyz;
 	lighting_buffer[1].w = 0; // stop bit is set to 0
 	lighting_buffer[2] = vec4(dir, 0);
 
@@ -562,7 +567,7 @@ void main()
 {
 	ivec2 pixel_coords = ivec2(gl_GlobalInvocationID.xy);
 
-	vec4 result_color;
+	vec4 result_color = vec4(0);
 	
 	// ray direction calculation
 	float hp = float(pixel_coords.x) / WIDTH;
@@ -574,9 +579,16 @@ void main()
 	// if (mode.x == 1)
 		// result_color = phong(dir);
 	// else if (mode.x == 2)
-		result_color = foggy(dir);
+		// result_color = foggy(dir);
 	// else
 		// result_color = hybrid(dir);
+
+	for (int aa = 0; aa < AA; aa ++)
+	{
+		result_color += foggy(dir, aa);
+	}
+
+	result_color /= AA;
 
 	// gamma correction
 	float gamma = 1/2.2;

@@ -25,11 +25,14 @@ using namespace glm;
 // shared_ptr<Shape> shape;
 
 // resolution
-#define WIDTH 640
-#define HEIGHT 480
+#define WIDTH 320
+#define HEIGHT 240
+#define AA 20
 
 // number of scene objects
 #define NUM_SHAPES 8
+
+#define NUM_FRAMES 16
 
 // aspect ratio constants
 #define ASPECT_RATIO 1.333333 // horizontal
@@ -40,24 +43,24 @@ class ssbo_data
 {
 public:
 	vec4 mode; // utility
-	vec4 w; // ray casting vector
-	vec4 u; // ray casting vector
-	vec4 v; // ray casting vector
+	vec4 w[NUM_FRAMES]; // ray casting vector
+	// vec4 u; // ray casting vector
+	// vec4 v; // ray casting vector
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
-	vec4 camera_location; // ray casting vector
+	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
 	vec4 light_pos; // for point lights only
 	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
-	vec4 rand_buffer[2]; // stores random numbers needed for ray bounces
+	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
 	// sphere: vec4 center, radius; vec4 nothing; vec4 color, shape_id
 	// plane: vec4 normal, distance from origin; vec4 point in plane; vec4 color, shape_id
 
 	// g buffer
-	vec4 pixels[2][WIDTH][HEIGHT];
-	vec4 normals_buffer[2][WIDTH][HEIGHT];
-	vec4 depth_buffer[2][WIDTH][HEIGHT];
+	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
+	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
 
@@ -538,9 +541,9 @@ public:
 
 		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
 		ssbo_CPUMEM.mode = vec4(1,0,0,0);
-		ssbo_CPUMEM.w = ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec4();
+		ssbo_CPUMEM.w[0] = vec4(); //ssbo_CPUMEM.u = ssbo_CPUMEM.v = vec4();
 		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
-		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
+		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location[0] = vec4();
 		// maybe there is a better place to store these important default values...
 		// instead of buried in computeInitGeom
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
@@ -588,8 +591,10 @@ public:
 			}
 		}
 
-		ssbo_CPUMEM.rand_buffer[0] = vec4(randf(), randf(), randf(), randf());
-		ssbo_CPUMEM.rand_buffer[1] = vec4(randf(), randf(), randf(), randf());
+		for (int i = 0; i < AA * 2; i ++)
+		{
+			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
+		}
 
 		glGenBuffers(1, &ssbo_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
@@ -672,16 +677,18 @@ public:
 		
 		ssbo_CPUMEM.mode.y = flap;
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;
-		ssbo_CPUMEM.w = vec4(w, 0);
-		ssbo_CPUMEM.u = vec4(u, 0);
-		ssbo_CPUMEM.v = vec4(v, 0);
+		ssbo_CPUMEM.w[flap] = vec4(w, 0);
+		// ssbo_CPUMEM.u = vec4(u, 0);
+		// ssbo_CPUMEM.v = vec4(v, 0);
 		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
 		ssbo_CPUMEM.vertical = vec4(vertical, 0);
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
-		ssbo_CPUMEM.camera_location = vec4(camera_location, 0);
+		ssbo_CPUMEM.camera_location[flap] = vec4(camera_location, 0);
 
-		ssbo_CPUMEM.rand_buffer[0] = vec4(randf(), randf(), randf(), randf());
-		ssbo_CPUMEM.rand_buffer[1] = vec4(randf(), randf(), randf(), randf());
+		for (int i = 0; i < AA * 2; i ++)
+		{
+			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
+		}
 
 		GLuint block_index = 1;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
@@ -721,7 +728,7 @@ public:
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-		flap = !flap;
+		flap = (flap + 1) % NUM_FRAMES;
 	}
 
 	//General OGL initialization - set OGL state here
