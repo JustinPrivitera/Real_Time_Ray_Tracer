@@ -74,6 +74,8 @@ public:
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+
+	// vec4 owie[5000000];
 };
 
 

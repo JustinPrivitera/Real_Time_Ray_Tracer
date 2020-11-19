@@ -50,6 +50,8 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+
+	// vec4 owie[5000000];
 };
 
 uniform int sizeofbuffer;
@@ -81,7 +83,7 @@ void main()
 
 			float coeff = normal_dot * depth_diff;
 
-			if (coeff > 0.0096)
+			if (coeff > 0.71)
 			{
 				color_sum += coeff * pixels[curr_frame][x][y];
 				denominator += coeff;
