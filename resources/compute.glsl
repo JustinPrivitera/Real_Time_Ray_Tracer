@@ -5,10 +5,10 @@
 #define WIDTH 320
 #define HEIGHT 240
 #define RECURSION_DEPTH 30
-#define AA 20
+#define AA 10
 #define NUM_SHAPES 8
 
-#define NUM_FRAMES 8
+#define NUM_FRAMES 16
 
 #define SPHERE_ID 1
 #define PLANE_ID 5
@@ -25,7 +25,7 @@ layout(local_size_x = 1, local_size_y = 1) in;
 layout (std430, binding = 0) volatile buffer shader_data
 {
 	vec4 mode; // utility
-	vec4 w[NUM_FRAMES]; // ray casting vector
+	vec4 w[NUM_FRAMES]; // post processing
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
@@ -40,7 +40,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	// vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -272,9 +272,9 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	return result_color;
 }
 
-vec3 get_pt_within_unit_sphere(int i)
+vec3 get_pt_within_unit_sphere(int aa)
 {
-	int first = i * 2;
+	int first = aa * 2;
 	int second = first + 1;
 	vec2 seed1 = vec2(rand_buffer[first].x, rand_buffer[first].y);
 	vec2 seed2 = vec2(rand_buffer[first].z, rand_buffer[first].w);
@@ -290,7 +290,7 @@ vec3 get_pt_within_unit_sphere(int i)
 }
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void foggy_helper_first_time(inout vec4 array[3], int depth, int i)
+void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 // vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	uint x = gl_GlobalInvocationID.x;
@@ -339,18 +339,18 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int i)
 		}
 
 		normals_buffer[flap][x][y] = vec4(normal, 1);
-		depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
+		// depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
 
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(normalize(get_pt_within_unit_sphere(i) + normal), 0);
+		array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
 		// array[2] = vec4(R, ind);
 	}
 	else // return background color
 	{
 		normals_buffer[flap][x][y] = vec4(0);
-		depth_buffer[flap][x][y] = vec4(0);
+		// depth_buffer[flap][x][y] = vec4(0);
 
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion
@@ -358,7 +358,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int i)
 }
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void foggy_helper(inout vec4 array[3], int depth, int i)
+void foggy_helper(inout vec4 array[3], int depth, int aa)
 // vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	if (depth <= 0)
@@ -404,7 +404,7 @@ void foggy_helper(inout vec4 array[3], int depth, int i)
 		// vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
-		array[2] = vec4(normalize(get_pt_within_unit_sphere(i) + normal), 0);
+		array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
 		// array[2] = vec4(R, ind);
 	}
 	else // return background color

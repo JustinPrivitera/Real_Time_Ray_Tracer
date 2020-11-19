@@ -27,12 +27,12 @@ using namespace glm;
 // resolution
 #define WIDTH 320
 #define HEIGHT 240
-#define AA 20
+#define AA 10
 
 // number of scene objects
 #define NUM_SHAPES 8
 
-#define NUM_FRAMES 8
+#define NUM_FRAMES 16
 
 // aspect ratio constants
 #define ASPECT_RATIO 1.333333 // horizontal
@@ -43,7 +43,7 @@ class ssbo_data
 {
 public:
 	vec4 mode; // utility
-	vec4 w[NUM_FRAMES]; // ray casting vector
+	vec4 w[NUM_FRAMES]; // post processing
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
@@ -58,7 +58,7 @@ public:
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	// vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
 

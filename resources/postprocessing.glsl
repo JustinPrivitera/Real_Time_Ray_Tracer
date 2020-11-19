@@ -5,10 +5,10 @@
 
 #define WIDTH 320
 #define HEIGHT 240
-#define AA 20
+#define AA 10
 #define NUM_SHAPES 8
 
-#define NUM_FRAMES 8
+#define NUM_FRAMES 16
 
 // one shader unit per pixel
 
@@ -19,7 +19,7 @@ layout(rgba32f, binding = 0) uniform image2D img_output;
 layout (std430, binding = 0) volatile buffer shader_data
 {
 	vec4 mode; // utility
-	vec4 w[NUM_FRAMES]; // ray casting vector
+	vec4 w[NUM_FRAMES]; // post processing
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
@@ -34,7 +34,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	// vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -54,21 +54,12 @@ void main()
 		vec4 curr_campos = camera_location[curr_frame];
 		vec4 curr_w = w[curr_frame];
 
-		// the oldest frame
-		int last_frame = (curr_frame + 1) % NUM_FRAMES;
-		vec4 last_normal = normals_buffer[last_frame][x][y];
-
-		vec4 last_campos = camera_location[last_frame];
-		vec4 last_w = w[last_frame];
-
-
 		vec4 color_sum = vec4(0);
 		float denominator = 1;
 		for (int i = 1; i < NUM_FRAMES; i ++)
 		{
 			int oofus_frame = (curr_frame + NUM_FRAMES - i) % NUM_FRAMES;
 			vec4 oofus_normal = normals_buffer[oofus_frame][x][y];
-
 			vec4 oofus_campos = camera_location[oofus_frame];
 			vec4 oofus_w = w[oofus_frame];
 
