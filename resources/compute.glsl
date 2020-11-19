@@ -49,7 +49,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-	// vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -158,8 +158,8 @@ vec3 get_pt_within_unit_sphere(int aa)
 }
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
-// vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
+void ambient_occlusion_helper_first_time(inout vec4 array[3], int depth, int aa)
+// vec4 ambient_occlusion(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	uint x = gl_GlobalInvocationID.x;
 	uint y = gl_GlobalInvocationID.y;
@@ -215,7 +215,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 		}
 
 		normals_buffer[flap][x][y] = vec4(normal, 1);
-		// depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
+		depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
 
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
@@ -232,7 +232,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 	else // return background color
 	{
 		normals_buffer[flap][x][y] = vec4(0);
-		// depth_buffer[flap][x][y] = vec4(0);
+		depth_buffer[flap][x][y] = vec4(0);
 
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion
@@ -240,8 +240,8 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 }
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void foggy_helper(inout vec4 array[3], int depth, int aa)
-// vec4 foggy(vec3 pos, vec3 dir, int depth, int last_ind)
+void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
+// vec4 ambient_occlusion(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	if (depth <= 0)
 		array[0] = vec4(0);
@@ -309,28 +309,28 @@ void foggy_helper(inout vec4 array[3], int depth, int aa)
 	}
 }
 
-vec4 foggy(vec3 dir, int aa)
+vec4 ambient_occlusion(vec3 dir, int aa)
 {
 	// vec4 result_color = vec4(1);
-	vec4 foggy_buffer[3];
+	vec4 ambient_occlusion_buffer[3];
 
-	foggy_buffer[1].xyz = camera_location[int(mode.y)].xyz;
-	foggy_buffer[1].w = 0; // stop bit is set to 0
-	foggy_buffer[2] = vec4(dir, 0);
+	ambient_occlusion_buffer[1].xyz = camera_location[int(mode.y)].xyz;
+	ambient_occlusion_buffer[1].w = 0; // stop bit is set to 0
+	ambient_occlusion_buffer[2] = vec4(dir, 0);
 
 	// do the first iteration outside
-	foggy_helper_first_time(foggy_buffer, RECURSION_DEPTH, aa);
-	vec4 result_color = foggy_buffer[0];
+	ambient_occlusion_helper_first_time(ambient_occlusion_buffer, RECURSION_DEPTH, aa);
+	vec4 result_color = ambient_occlusion_buffer[0];
 
-	if (foggy_buffer[1].w > 0.99)
+	if (ambient_occlusion_buffer[1].w > 0.99)
 		return result_color;
 
 	int i = RECURSION_DEPTH - 1;
 	while (i > 0)
 	{
-		foggy_helper(foggy_buffer, i, aa);
-		result_color = result_color * foggy_buffer[0];
-		if (foggy_buffer[1].w == 1) // the stop bit was set
+		ambient_occlusion_helper(ambient_occlusion_buffer, i, aa);
+		result_color = result_color * ambient_occlusion_buffer[0];
+		if (ambient_occlusion_buffer[1].w == 1) // the stop bit was set
 			break;
 		i -= 1;
 	}
@@ -363,7 +363,7 @@ void main()
 		float vp = (float(xy.y) + randy.y) / HEIGHT;
 		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
-		result_color += foggy(dir, aa);
+		result_color += ambient_occlusion(dir, aa);
 	}
 
 	result_color /= AA;

@@ -43,7 +43,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	// g buffer
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-	// vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
 uniform int sizeofbuffer;
@@ -62,6 +62,7 @@ void main()
 	{
 		vec4 curr_campos = camera_location[curr_frame];
 		vec4 curr_w = w[curr_frame];
+		float curr_depth = depth_buffer[curr_frame][x][y].x;
 
 		vec4 color_sum = vec4(0);
 		float denominator = 1;
@@ -69,16 +70,23 @@ void main()
 		{
 			int oofus_frame = (curr_frame + NUM_FRAMES - i) % NUM_FRAMES;
 			vec4 oofus_normal = normals_buffer[oofus_frame][x][y];
-			vec4 oofus_campos = camera_location[oofus_frame];
-			vec4 oofus_w = w[oofus_frame];
+			// vec4 oofus_campos = camera_location[oofus_frame];
+			// vec4 oofus_w = w[oofus_frame];
+			float oofus_depth = depth_buffer[oofus_frame][x][y].x;
+
+			float normal_dot = dot(curr_normal, oofus_normal);
+			float depth_diff = (1 - clamp(abs(curr_depth - oofus_depth), 0, 1));
+
+			float coeff = normal_dot * depth_diff;
 
 			if (
-				dot(curr_normal, oofus_normal) > 0.96 && 
-				length(curr_campos.xyz - oofus_campos.xyz) < 1.2 &&
-				dot(curr_w, oofus_w) > 0.99)
+				coeff > 0.0096
+				// length(curr_campos.xyz - oofus_campos.xyz) < 1.2 &&
+				// dot(curr_w, oofus_w) > 0.99
+				)
 			{
-				color_sum += pixels[oofus_frame][x][y];
-				denominator += 1;
+				color_sum += coeff * pixels[oofus_frame][x][y];
+				denominator += coeff;
 			}
 			else
 				break;
