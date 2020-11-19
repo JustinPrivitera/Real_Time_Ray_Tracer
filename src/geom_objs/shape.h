@@ -16,10 +16,12 @@ public:
 	shape() : p(pigment())
 	{
 		reflectivity = 1;
+		emissive = false;
 	}
 	shape(pigment p) : p(p)
 	{
 		reflectivity = 1;
+		emissive = false;
 	}
 	// shape() : p(pigment()), f(finish()) {}
 	// shape(pigment p) : p(p), f(finish()) {}
@@ -37,5 +39,6 @@ public:
 public:
 	pigment p;
 	float reflectivity;
+	bool emissive;
 	// finish f;
 };

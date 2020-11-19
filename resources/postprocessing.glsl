@@ -6,7 +6,7 @@
 #define WIDTH 320
 #define HEIGHT 240
 #define AA 10
-#define NUM_SHAPES 2
+#define NUM_SHAPES 3
 
 #define NUM_FRAMES 16
 
@@ -29,15 +29,15 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
-		// vec4: vec3 nothing, bool emmisive?
+		// vec4: vec3 nothing, bool emissive?
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
-		// vec4: vec3 nothing, bool emmisive?
+		// vec4: vec3 nothing, bool emissive?
 		// vec4: vec3 point in plane, float reflectivity
 		// vec4: vec3 color, int shape_id
-	
+
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
 
 	// g buffer

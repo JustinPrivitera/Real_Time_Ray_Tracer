@@ -6,7 +6,7 @@
 #define HEIGHT 240
 #define RECURSION_DEPTH 30
 #define AA 10
-#define NUM_SHAPES 2
+#define NUM_SHAPES 3
 
 #define NUM_FRAMES 16
 
@@ -35,12 +35,12 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
-		// vec4: vec3 nothing, bool emmisive?
+		// vec4: vec3 nothing, bool emissive?
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
-		// vec4: vec3 nothing, bool emmisive?
+		// vec4: vec3 nothing, bool emissive?
 		// vec4: vec3 point in plane, float reflectivity
 		// vec4: vec3 color, int shape_id
 
@@ -194,6 +194,14 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 	if (ind != -1) // we must have hit something
 	{
 		vec4 attenuation = simple_shapes[ind][3];
+
+		if (simple_shapes[ind][1].w > 0.99) // is this shape emmissive?
+		{
+			array[0] = attenuation;
+			array[1].w = 1; // this means stop the recursion
+			return;
+		}
+
 		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
@@ -263,6 +271,13 @@ void foggy_helper(inout vec4 array[3], int depth, int aa)
 	if (ind != -1) // we must have hit something
 	{
 		vec4 attenuation = simple_shapes[ind][3];
+		if (simple_shapes[ind][1].w > 0.9) // is this shape emmissive?
+		{
+			array[0] = attenuation;
+			array[1].w = 1; // this means stop the recursion
+			return;
+		}
+
 		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
@@ -306,6 +321,9 @@ vec4 foggy(vec3 dir, int aa)
 	// do the first iteration outside
 	foggy_helper_first_time(foggy_buffer, RECURSION_DEPTH, aa);
 	vec4 result_color = foggy_buffer[0];
+
+	if (foggy_buffer[1].w > 0.99)
+		return result_color;
 
 	int i = RECURSION_DEPTH - 1;
 	while (i > 0)

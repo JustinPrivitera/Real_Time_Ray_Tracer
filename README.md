@@ -3,11 +3,8 @@ final project for csc 572, graduate graphics
 
 use WASD to move
 QEZC to rotate
-L to toggle light source movement
-P to toggle scene
+P to toggle scene... don't ever do this
 F to toggle aspect ratio
 
-lighting algorithm selection
-1 to view scene with phong diffuse lighting
-2 to view scene with ambient occlusion
-3 to view scene with a hybrid of phong diffuse and real time reflections
+now the only lighting available is ray traced ambient occlusion
+it supports real time reflections and realistic shadowing

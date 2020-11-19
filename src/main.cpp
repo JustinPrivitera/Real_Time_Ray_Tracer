@@ -30,7 +30,7 @@ using namespace glm;
 #define AA 10
 
 // number of scene objects
-#define NUM_SHAPES 2
+#define NUM_SHAPES 3
 
 #define NUM_FRAMES 16
 
@@ -53,12 +53,12 @@ public:
 	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
-		// vec4: vec3 nothing, bool emmisive?
+		// vec4: vec3 nothing, bool emissive?
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
-		// vec4: vec3 nothing, bool emmisive?
+		// vec4: vec3 nothing, bool emissive?
 		// vec4: vec3 point in plane, float reflectivity
 		// vec4: vec3 color, int shape_id
 
@@ -362,7 +362,38 @@ public:
 		// make scene
 		scene scene4 = scene(myshapes4,lights);
 
-		return scene4;
+		////////////////////////////////
+
+		vector<shape*> myshapes5 = vector<shape*>();
+
+		// sphere
+		center = vec3(0,14,0);
+		radius = 8;
+		color = pigment(vec3(1.5,1.5,1.5)); // TODO rip out pigments
+		sphere* s5sphere1 = new sphere(center,radius,color);
+		s5sphere1->emissive = true;
+
+		// sphere
+		center = vec3(0,0,0);
+		radius = 2;
+		color = pigment(vec3(0.2,0.6,0.8));
+		sphere* s5sphere2 = new sphere(center,radius,color);
+		s5sphere2->reflectivity = 0.4;
+
+		// sphere
+		center = vec3(0,-35,0);
+		radius = 33;
+		color = pigment(vec3(0.8,0.6,0.2));
+		sphere* s5sphere3 = new sphere(center,radius,color);
+
+		myshapes5.push_back(s5sphere1);
+		myshapes5.push_back(s5sphere2);
+		myshapes5.push_back(s5sphere3);
+
+		// make scene
+		scene scene5 = scene(myshapes5,lights);
+
+		return scene5;
 	}
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -627,7 +658,8 @@ public:
 		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location[0] = vec4();
 		// maybe there is a better place to store these important default values...
 		// instead of buried in computeInitGeom
-		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
+		// ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
+		ssbo_CPUMEM.background = vec4(0);
 		// ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
 		// ssbo_CPUMEM.light_pos = vec4(-4, 100, 200, 0);
 
@@ -641,9 +673,11 @@ public:
 				float rad = ((sphere*) curr)->radius;
 				vec3 color = ((sphere*) curr)->p.rgb;
 				float reflectivity = curr->reflectivity;
+				float emissive = curr->emissive;
 				int id = SPHERE_ID;
 
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
+				ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
 				ssbo_CPUMEM.simple_shapes[i][2].w = reflectivity;
 				ssbo_CPUMEM.simple_shapes[i][3] = vec4(color, id);
 			}
@@ -654,9 +688,11 @@ public:
 				vec3 color = ((plane*) curr)->p.rgb;
 				vec3 p0 = ((plane*) curr)->p0;
 				float reflectivity = curr->reflectivity;
+				float emissive = curr->emissive;
 				int id = PLANE_ID;
 
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
+				ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
 				ssbo_CPUMEM.simple_shapes[i][2] = vec4(p0, reflectivity);
 				ssbo_CPUMEM.simple_shapes[i][3] = vec4(color, id);
 			}
