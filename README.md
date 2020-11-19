@@ -8,3 +8,5 @@ F to toggle aspect ratio
 
 now the only lighting available is ray traced ambient occlusion
 it supports real time reflections and realistic shadowing
+
+press 1, 2, 3 to change the scene
