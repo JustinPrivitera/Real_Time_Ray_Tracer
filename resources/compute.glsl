@@ -2,10 +2,10 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
-#define WIDTH 440
-#define HEIGHT 330
+#define WIDTH 400
+#define HEIGHT 300
 #define RECURSION_DEPTH 30
-#define AA 4
+#define AA 3
 #define NUM_SHAPES 10
 
 #define NUM_FRAMES 8
@@ -427,7 +427,7 @@ void main()
 
 		randy = normalize(vec2(
 				random(seed1 + xy * seed2 - xy + seed3), 
-				random(seed4 * xy - seed3 * xy * seed2))) / 4 - vec2(0.125);
+				random(seed4 * xy - seed3 * xy * seed2))) / 6 - vec2(0.08333);
 		
 		// ray direction calculation
 		float hp = (float(xy.x) + randy.x) / WIDTH;

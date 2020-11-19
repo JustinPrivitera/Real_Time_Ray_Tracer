@@ -25,9 +25,9 @@ using namespace glm;
 // shared_ptr<Shape> shape;
 
 // resolution
-#define WIDTH 440
-#define HEIGHT 330
-#define AA 4
+#define WIDTH 400
+#define HEIGHT 300
+#define AA 3
 
 // number of scene objects
 #define NUM_SHAPES 10
@@ -463,6 +463,7 @@ public:
 			mycam.one = 1;
 			mycam.two = 0;
 			mycam.three = 0;
+			// ssbo_CPUMEM.background = vec4(1);
 			ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 			true_num_scene_objects = 5;
 			myscene = scene1;

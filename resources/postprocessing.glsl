@@ -3,9 +3,9 @@
 // #extension GL_ARB_compute_shader : enable
 
 
-#define WIDTH 440
-#define HEIGHT 330
-#define AA 4
+#define WIDTH 400
+#define HEIGHT 300
+#define AA 3
 #define NUM_SHAPES 10
 
 #define NUM_FRAMES 8
@@ -69,6 +69,77 @@ void main()
 	if (new_normal.w > 0.99) // if it is not a background pixel
 	{
 		float new_depth = depth_buffer[new_frame][x][y].x;
+
+		// // spatial
+		// vec4 left,right,up,down;
+		// float l,r,u,d;
+		// vec3 l_normal, r_normal, u_normal, d_normal;
+		// float l_depth, r_depth, u_depth, d_depth;
+
+		// if (x + 1 < WIDTH)
+		// {
+		// 	right = pixels[new_frame][x + 1][y];
+		// 	r_normal = normals_buffer[new_frame][x + 1][y].xyz;
+		// 	r_depth = depth_buffer[new_frame][x + 1][y].x;
+
+		// 	float normal_dot = dot(new_normal.xyz, r_normal);
+		// 	float depth_diff = (1 - clamp(abs(new_depth - r_depth), 0, 1));
+		// 	r = normal_dot * depth_diff;
+		// }
+		// else
+		// {
+		// 	r = 0;
+		// }
+
+		// if (x - 1 > -1)
+		// {
+		// 	left = pixels[new_frame][x - 1][y];
+		// 	l_normal = normals_buffer[new_frame][x - 1][y].xyz;
+		// 	l_depth = depth_buffer[new_frame][x - 1][y].x;
+
+		// 	float normal_dot = dot(new_normal.xyz, l_normal);
+		// 	float depth_diff = (1 - clamp(abs(new_depth - l_depth), 0, 1));
+		// 	l = normal_dot * depth_diff;
+		// }
+		// else
+		// {
+		// 	l = 0;
+		// }
+
+		// if (y + 1 < HEIGHT)
+		// {
+		// 	up = pixels[new_frame][x][y + 1];
+		// 	u_normal = normals_buffer[new_frame][x][y + 1].xyz;
+		// 	u_depth = depth_buffer[new_frame][x][y + 1].x;
+
+		// 	float normal_dot = dot(new_normal.xyz, u_normal);
+		// 	float depth_diff = (1 - clamp(abs(new_depth - u_depth), 0, 1));
+		// 	u = normal_dot * depth_diff;
+		// }
+		// else
+		// {
+		// 	u = 0;
+		// }
+
+		// if (y - 1 > -1)
+		// {
+		// 	down = pixels[new_frame][x][y - 1];
+		// 	d_normal = normals_buffer[new_frame][x][y - 1].xyz;
+		// 	d_depth = depth_buffer[new_frame][x][y - 1].x;
+
+		// 	float normal_dot = dot(new_normal.xyz, d_normal);
+		// 	float depth_diff = (1 - clamp(abs(new_depth - d_depth), 0, 1));
+		// 	d = normal_dot * depth_diff;
+		// }
+		// else
+		// {
+		// 	d = 0;
+		// }
+
+		// color = (color + u * up + d * down + l * left + r * right) / (1 + u + d + l + r);
+
+		////////////////////////////
+		// temporal
 
 		vec4 color_sum = vec4(0);
 		float denominator = 1;
