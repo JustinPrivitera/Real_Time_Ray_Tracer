@@ -44,8 +44,6 @@ class ssbo_data
 public:
 	vec4 mode; // utility
 	vec4 w[NUM_FRAMES]; // ray casting vector
-	// vec4 u; // ray casting vector
-	// vec4 v; // ray casting vector
 	vec4 horizontal; // ray casting vector
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
