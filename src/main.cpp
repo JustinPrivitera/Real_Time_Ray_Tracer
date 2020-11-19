@@ -32,7 +32,7 @@ using namespace glm;
 // number of scene objects
 #define NUM_SHAPES 8
 
-#define NUM_FRAMES 16
+#define NUM_FRAMES 8
 
 // aspect ratio constants
 #define ASPECT_RATIO 1.333333 // horizontal

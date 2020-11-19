@@ -8,7 +8,7 @@
 #define AA 20
 #define NUM_SHAPES 8
 
-#define NUM_FRAMES 16
+#define NUM_FRAMES 8
 
 // one shader unit per pixel
 

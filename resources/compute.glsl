@@ -8,7 +8,7 @@
 #define AA 20
 #define NUM_SHAPES 8
 
-#define NUM_FRAMES 16
+#define NUM_FRAMES 8
 
 #define SPHERE_ID 1
 #define PLANE_ID 5
