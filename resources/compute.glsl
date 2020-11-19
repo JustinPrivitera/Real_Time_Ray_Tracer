@@ -32,16 +32,18 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
 	// vec4 light_pos; // for point lights only
-	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
+	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
+		// vec4: vec3 nothing, bool emmisive?
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
+		// vec4: vec3 nothing, bool emmisive?
 		// vec4: vec3 point in plane, float reflectivity
 		// vec4: vec3 color, int shape_id
-	
+
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
 
 	// g buffer
@@ -114,13 +116,13 @@ float plane_eval_ray(vec3 pos, vec3 dir, int shape_index)
 	float denom = dot(normal, dir);
 	if (denom < 0.001 && denom > -0.001)
 		return -1;
-	vec3 p0 = simple_shapes[shape_index][1].xyz;
+	vec3 p0 = simple_shapes[shape_index][2].xyz;
 	return dot(normal, p0 - pos) / denom;
 }
 
 float eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
-	int shape_id = int(simple_shapes[shape_index][2].w);
+	int shape_id = int(simple_shapes[shape_index][3].w);
 	if (shape_id == SPHERE_ID)
 	{
 		return sphere_eval_ray(pos, dir, shape_index);
@@ -191,7 +193,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 
 	if (ind != -1) // we must have hit something
 	{
-		vec4 attenuation = simple_shapes[ind][2];
+		vec4 attenuation = simple_shapes[ind][3];
 		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
@@ -210,7 +212,7 @@ void foggy_helper_first_time(inout vec4 array[3], int depth, int aa)
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
 
-		float reflect = simple_shapes[ind][1].w;
+		float reflect = simple_shapes[ind][2].w;
 		if (reflect > 0.999) // no reflection
 			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
 		else // reflection
@@ -260,7 +262,7 @@ void foggy_helper(inout vec4 array[3], int depth, int aa)
 
 	if (ind != -1) // we must have hit something
 	{
-		vec4 attenuation = simple_shapes[ind][2];
+		vec4 attenuation = simple_shapes[ind][3];
 		vec3 curr_pos = camera_location[int(mode.y)].xyz + t * dir;
 		int id = int(attenuation.w);
 		vec3 normal;
@@ -276,7 +278,7 @@ void foggy_helper(inout vec4 array[3], int depth, int aa)
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
 
-		float reflect = simple_shapes[ind][1].w;
+		float reflect = simple_shapes[ind][2].w;
 		if (reflect > 0.999) // no reflection
 			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
 		else // reflection

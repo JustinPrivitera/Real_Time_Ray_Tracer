@@ -26,13 +26,15 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
 	// vec4 light_pos; // for point lights only
-	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
+	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
+		// vec4: vec3 nothing, bool emmisive?
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
+		// vec4: vec3 nothing, bool emmisive?
 		// vec4: vec3 point in plane, float reflectivity
 		// vec4: vec3 color, int shape_id
 	

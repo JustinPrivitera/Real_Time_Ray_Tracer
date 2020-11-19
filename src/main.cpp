@@ -50,13 +50,15 @@ public:
 	vec4 camera_location[NUM_FRAMES]; // ray casting vector
 	vec4 background; // represents the background color
 	// vec4 light_pos; // for point lights only
-	vec4 simple_shapes[NUM_SHAPES][3]; // shape buffer
+	vec4 simple_shapes[NUM_SHAPES][4]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
+		// vec4: vec3 nothing, bool emmisive?
 		// vec4: vec3 nothing, float reflectivity
 		// vec4: vec3 color, int shape_id
 	// plane:
 		// vec4: vec3 normal, float distance from origin
+		// vec4: vec3 nothing, bool emmisive?
 		// vec4: vec3 point in plane, float reflectivity
 		// vec4: vec3 color, int shape_id
 
@@ -642,8 +644,8 @@ public:
 				int id = SPHERE_ID;
 
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
-				ssbo_CPUMEM.simple_shapes[i][1].w = reflectivity;
-				ssbo_CPUMEM.simple_shapes[i][2] = vec4(color, id);
+				ssbo_CPUMEM.simple_shapes[i][2].w = reflectivity;
+				ssbo_CPUMEM.simple_shapes[i][3] = vec4(color, id);
 			}
 			if (curr->id() == PLANE_ID)
 			{
@@ -655,8 +657,8 @@ public:
 				int id = PLANE_ID;
 
 				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
-				ssbo_CPUMEM.simple_shapes[i][1] = vec4(p0, reflectivity);
-				ssbo_CPUMEM.simple_shapes[i][2] = vec4(color, id);
+				ssbo_CPUMEM.simple_shapes[i][2] = vec4(p0, reflectivity);
+				ssbo_CPUMEM.simple_shapes[i][3] = vec4(color, id);
 			}
 		}
 
