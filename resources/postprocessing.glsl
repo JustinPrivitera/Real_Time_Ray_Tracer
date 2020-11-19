@@ -3,12 +3,12 @@
 // #extension GL_ARB_compute_shader : enable
 
 
-#define WIDTH 320
-#define HEIGHT 240
-#define AA 10
-#define NUM_SHAPES 3
+#define WIDTH 440
+#define HEIGHT 330
+#define AA 4
+#define NUM_SHAPES 10
 
-#define NUM_FRAMES 16
+#define NUM_FRAMES 8
 
 // one shader unit per pixel
 
@@ -73,10 +73,10 @@ void main()
 		for (int i = 1; i < NUM_FRAMES; i ++)
 		{
 			int curr_frame = (new_frame + NUM_FRAMES - i) % NUM_FRAMES;
-			vec4 curr_normal = normals_buffer[curr_frame][x][y];
+			vec3 curr_normal = normals_buffer[curr_frame][x][y].xyz;
 			float curr_depth = depth_buffer[curr_frame][x][y].x;
 
-			float normal_dot = dot(new_normal, curr_normal);
+			float normal_dot = dot(new_normal.xyz, curr_normal);
 			float depth_diff = (1 - clamp(abs(new_depth - curr_depth), 0, 1));
 
 			float coeff = normal_dot * depth_diff;

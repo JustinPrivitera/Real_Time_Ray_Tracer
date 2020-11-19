@@ -25,14 +25,14 @@ using namespace glm;
 // shared_ptr<Shape> shape;
 
 // resolution
-#define WIDTH 320
-#define HEIGHT 240
-#define AA 10
+#define WIDTH 440
+#define HEIGHT 330
+#define AA 4
 
 // number of scene objects
-#define NUM_SHAPES 3
+#define NUM_SHAPES 10
 
-#define NUM_FRAMES 16
+#define NUM_FRAMES 8
 
 // aspect ratio constants
 #define ASPECT_RATIO 1.333333 // horizontal
@@ -90,10 +90,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, f, q, e, sp, ls, z, c, p;
+	int w, a, s, d, f, q, e, sp, ls, z, c, p, one, two, three;
 	fake_camera()
 	{
-		w = a = s = d = f = q = e = sp = ls = z = c = p = 0;
+		w = a = s = d = f = q = e = sp = ls = z = c = p = one = two = three = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -164,6 +164,7 @@ public:
 		shapes(shapes), lights(lights) {}
 	// scene(vector<shape> shapes, vector<light_source> lights, camera cam) : 
 	// 	shapes(shapes), lights(lights), cam(cam) {}
+	scene() : shapes(vector<shape*>()), lights(vector<light_source>()) {}
 
 public:
 	vector<shape*> shapes;
@@ -177,10 +178,14 @@ class Application : public EventCallbacks
 public:
 
 	float aspect_ratio = ASPECT_RATIO;
-	int true_num_scene_objects = NUM_SHAPES;
+	int true_num_scene_objects = 5; // NUM_SHAPES;
 	// int light_movement = 0;
 
-	scene myscene = init_scene();
+	scene scene1 = init_scene1();
+	scene scene2 = init_scene2();
+	scene scene3 = init_scene3();
+
+	scene myscene = scene1;
 
 	// copies of the SSBO data since these values will change each frame
 	vec3 w;
@@ -220,159 +225,68 @@ public:
 
 	int tex_w, tex_h;
 
-	scene init_scene()
+	scene init_scene1()
 	{
-		// // sphere
-		// vec3 center = vec3(0,-0.5,0);
-		// float radius = 2;
-		// pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
-		// sphere* mysphere = new sphere(center,radius,color);
-		// mysphere->reflectivity = 0.5;
+		// sphere
+		vec3 center = vec3(0,-0.5,0);
+		float radius = 2;
+		pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
+		sphere* mysphere = new sphere(center,radius,color);
+		mysphere->reflectivity = 0.5;
 
-		// // sphere
-		// center = vec3(4,-0.5,-2);
-		// radius = 3.5;
-		// color = pigment(vec3(0.8,0.8,0.1));
-		// sphere* mysphere2 = new sphere(center,radius,color);
-		// mysphere2->reflectivity = 0.0;
+		// sphere
+		center = vec3(4,-0.5,-2);
+		radius = 3.5;
+		color = pigment(vec3(0.8,0.8,0.1));
+		sphere* mysphere2 = new sphere(center,radius,color);
+		mysphere2->reflectivity = 0.0;
 
-		// // sphere
-		// center = vec3(-4.5,4,-15);
-		// radius = 4;
-		// color = pigment(vec3(0.2,0.8,0.1));
-		// sphere* mysphere3 = new sphere(center,radius,color);
-		// mysphere3->reflectivity = 0.7;
+		// sphere
+		center = vec3(-4.5,4,-15);
+		radius = 4;
+		color = pigment(vec3(0.2,0.8,0.1));
+		sphere* mysphere3 = new sphere(center,radius,color);
+		mysphere3->reflectivity = 0.7;
 
-		// // sphere
-		// center = vec3(-8,-1,2);
-		// radius = 1.5;
-		// color = pigment(vec3(1,1,1));
-		// sphere* mysphere4 = new sphere(center,radius,color);
-		// mysphere4->reflectivity = 0.9;
+		// sphere
+		center = vec3(-8,-1,2);
+		radius = 1.5;
+		color = pigment(vec3(1,1,1));
+		sphere* mysphere4 = new sphere(center,radius,color);
+		mysphere4->reflectivity = 0.9;
 
-		// // plane
-		// vec3 normal = vec3(0, 1, 0);
-		// float distance_from_origin = -4;
-		// color = pigment(vec3(0.3,0.0,0.5));
-		// plane* myplane = new plane(normal, distance_from_origin, color);
-
-		// // plane
-		// normal = vec3(-1, 0, 0);
-		// distance_from_origin = -8;
-		// color = pigment(vec3(0.3,0.4,0.6));
-		// plane* myplane1 = new plane(normal, distance_from_origin, color);
-
-		// // plane
-		// normal = vec3(1, 0, 0);
-		// distance_from_origin = -8;
-		// color = pigment(vec3(0.5,0.0,0.3));
-		// plane* myplane2 = new plane(normal, distance_from_origin, color);
-
-		// // plane
-		// normal = vec3(0, 0, 1);
-		// distance_from_origin = -16;
-		// color = pigment(vec3(0.7,0.7,0.2));
-		// plane* myplane3 = new plane(normal, distance_from_origin, color);
+		// plane
+		vec3 normal = vec3(0, 1, 0);
+		float distance_from_origin = -4;
+		color = pigment(vec3(0.3,0.0,0.5));
+		plane* myplane = new plane(normal, distance_from_origin, color);
 		
-		// // shapes vector
-		// vector<shape*> myshapes = vector<shape*>();
-		// myshapes.push_back(mysphere);
-		// myshapes.push_back(mysphere2);
-		// myshapes.push_back(mysphere3);
-		// myshapes.push_back(mysphere4);
-		// myshapes.push_back(myplane);
-		// myshapes.push_back(myplane1);
-		// myshapes.push_back(myplane2);
-		// myshapes.push_back(myplane3);
+		// shapes vector
+		vector<shape*> myshapes = vector<shape*>();
+		myshapes.push_back(mysphere);
+		myshapes.push_back(mysphere2);
+		myshapes.push_back(mysphere3);
+		myshapes.push_back(mysphere4);
+		myshapes.push_back(myplane);
 
-		// if (myshapes.size() != NUM_SHAPES)
-		// 	cerr << "num shapes mismatch" << endl;
-
-		// // light sources
+		// light sources
 		vector<light_source> lights = vector<light_source>();
 
-		// // make scene
-		// scene scene1 = scene(myshapes,lights);
-
-		////////////////////////////////////////////////////////
-
-		vector<shape*> myshapes2 = vector<shape*>();
-
-		// sphere
-		vec3 center = vec3(0,0,0);
-		float radius = 2;
-		pigment color = pigment(vec3(0.2,0.6,0.8)); // TODO rip out pigments
-		sphere* s2sphere1 = new sphere(center,radius,color);
-		s2sphere1->reflectivity = 0.0;
-
-		// sphere
-		center = vec3(0,-35,0);
-		radius = 33;
-		color = pigment(vec3(0.1,0.1,0.8));
-		sphere* s2sphere2 = new sphere(center,radius,color);
-
-		myshapes2.push_back(s2sphere1);
-		myshapes2.push_back(s2sphere2);
-
 		// make scene
-		scene scene2 = scene(myshapes2,lights);
+		scene scene1 = scene(myshapes,lights);
+		return scene1;
+	}
 
-		////////////////////////////////
-
-		vector<shape*> myshapes3 = vector<shape*>();
-
-		// sphere
-		center = vec3(0,0,0);
-		radius = 2;
-		color = pigment(vec3(0.2,0.6,0.8)); // TODO rip out pigments
-		sphere* s3sphere1 = new sphere(center,radius,color);
-		s3sphere1->reflectivity = 0.0;
-
-		// sphere
-		center = vec3(0,-35,0);
-		radius = 33;
-		color = pigment(vec3(0.8,0.6,0.2));
-		sphere* s3sphere2 = new sphere(center,radius,color);
-		s3sphere2->reflectivity = 0.0;
-
-		myshapes3.push_back(s3sphere1);
-		myshapes3.push_back(s3sphere2);
-
-		// make scene
-		scene scene3 = scene(myshapes3,lights);
-
-		////////////////////////////////
-
-		vector<shape*> myshapes4 = vector<shape*>();
-
-		// sphere
-		center = vec3(0,0,0);
-		radius = 2;
-		color = pigment(vec3(0.2,0.6,0.8)); // TODO rip out pigments
-		sphere* s4sphere1 = new sphere(center,radius,color);
-		s4sphere1->reflectivity = 0.4;
-
-		// sphere
-		center = vec3(0,-35,0);
-		radius = 33;
-		color = pigment(vec3(0.8,0.6,0.2));
-		sphere* s4sphere2 = new sphere(center,radius,color);
-		s4sphere2->reflectivity = 0.8;
-
-		myshapes4.push_back(s4sphere1);
-		myshapes4.push_back(s4sphere2);
-
-		// make scene
-		scene scene4 = scene(myshapes4,lights);
-
-		////////////////////////////////
-
+	scene init_scene2()
+	{
+		vector<light_source> lights = vector<light_source>();
+		
 		vector<shape*> myshapes5 = vector<shape*>();
 
 		// sphere
-		center = vec3(0,14,0);
-		radius = 8;
-		color = pigment(vec3(1.5,1.5,1.5)); // TODO rip out pigments
+		vec3 center = vec3(0,14,0);
+		float radius = 8;
+		pigment color = pigment(vec3(1.5,1.5,1.5)); // TODO rip out pigments
 		sphere* s5sphere1 = new sphere(center,radius,color);
 		s5sphere1->emissive = true;
 
@@ -404,62 +318,65 @@ public:
 		// make scene
 		scene scene5 = scene(myshapes5,lights);
 
-		////////////////////////////////
-
-		// vector<shape*> myshapes6 = vector<shape*>();
-
-		// // sphere
-		// center = vec3(0,12,0);
-		// radius = 6;
-		// color = pigment(vec3(4,4,4)); // TODO rip out pigments
-		// sphere* s6sphere1 = new sphere(center,radius,color);
-		// s6sphere1->emissive = true;
-
-		// // sphere
-		// center = vec3(-8,0,0);
-		// radius = 2;
-		// color = pigment(vec3(8, 8, 16)); // TODO rip out pigments
-		// sphere* s6sphere2 = new sphere(center,radius,color);
-		// s6sphere2->emissive = true;
-
-		// // sphere
-		// center = vec3(0,0,0);
-		// radius = 2;
-		// color = pigment(vec3(0.2,0.6,0.8));
-		// sphere* s6sphere3 = new sphere(center,radius,color);
-		// s6sphere3->reflectivity = 0.4;
-
-		// // sphere
-		// center = vec3(0,-35,0);
-		// radius = 33;
-		// color = pigment(vec3(0.8,0.6,0.2));
-		// sphere* s6sphere4 = new sphere(center,radius,color);
-
-		// // sphere
-		// center = vec3(2,1,3);
-		// radius = 0.5;
-		// color = pigment(vec3(1,1,1));
-		// sphere* s6sphere5 = new sphere(center,radius,color);
-		// s6sphere5->reflectivity = 0.0;
-
-		// // sphere
-		// center = vec3(4.5, 0.2, 5);
-		// radius = 2.25;
-		// color = pigment(vec3(1,1,1));
-		// sphere* s6sphere6 = new sphere(center,radius,color);
-		// s6sphere6->reflectivity = 0.0;
-
-		// myshapes6.push_back(s6sphere1);
-		// myshapes6.push_back(s6sphere2);
-		// myshapes6.push_back(s6sphere3);
-		// myshapes6.push_back(s6sphere4);
-		// myshapes6.push_back(s6sphere5);
-		// myshapes6.push_back(s6sphere6);
-
-		// // make scene
-		// scene scene6 = scene(myshapes6,lights);
-
 		return scene5;
+	}
+
+	scene init_scene3()
+	{
+		vector<light_source> lights = vector<light_source>();
+		vector<shape*> myshapes6 = vector<shape*>();
+
+		// sphere
+		vec3 center = vec3(0,12,0);
+		float radius = 6;
+		pigment color = pigment(vec3(4,4,4)); // TODO rip out pigments
+		sphere* s6sphere1 = new sphere(center,radius,color);
+		s6sphere1->emissive = true;
+
+		// sphere
+		center = vec3(-8,0,0);
+		radius = 2;
+		color = pigment(vec3(8, 8, 16)); // TODO rip out pigments
+		sphere* s6sphere2 = new sphere(center,radius,color);
+		s6sphere2->emissive = true;
+
+		// sphere
+		center = vec3(0,0,0);
+		radius = 2;
+		color = pigment(vec3(0.2,0.6,0.8));
+		sphere* s6sphere3 = new sphere(center,radius,color);
+		s6sphere3->reflectivity = 0.4;
+
+		// sphere
+		center = vec3(0,-35,0);
+		radius = 33;
+		color = pigment(vec3(0.8,0.6,0.2));
+		sphere* s6sphere4 = new sphere(center,radius,color);
+
+		// sphere
+		center = vec3(2,1,3);
+		radius = 0.5;
+		color = pigment(vec3(1,1,1));
+		sphere* s6sphere5 = new sphere(center,radius,color);
+		s6sphere5->reflectivity = 0.0;
+
+		// sphere
+		center = vec3(4.5, 0.2, 5);
+		radius = 2.25;
+		color = pigment(vec3(1,1,1));
+		sphere* s6sphere6 = new sphere(center,radius,color);
+		s6sphere6->reflectivity = 0.0;
+
+		myshapes6.push_back(s6sphere1);
+		myshapes6.push_back(s6sphere2);
+		myshapes6.push_back(s6sphere3);
+		myshapes6.push_back(s6sphere4);
+		myshapes6.push_back(s6sphere5);
+		myshapes6.push_back(s6sphere6);
+
+		// make scene
+		scene scene6 = scene(myshapes6,lights);
+		return scene6;
 	}
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -468,14 +385,6 @@ public:
 		{
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
-
-		// // toggle light movement
-		// if (key == GLFW_KEY_L && action == GLFW_PRESS)
-		// {
-		// 	light_movement = !light_movement;
-		// 	if (light_movement)
-		// 		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
-		// }
 		
 		if (key == GLFW_KEY_W && action == GLFW_PRESS)
 		{
@@ -546,33 +455,48 @@ public:
 			mycam.c = 0;
 		}
 
-		// toggle lighting mode
+		// toggle scene
 		if (key == GLFW_KEY_1 && action == GLFW_PRESS)
 		{
-			ssbo_CPUMEM.mode.x = 1;
-		}
-
-		// toggle lighting mode
-		if (key == GLFW_KEY_2 && action == GLFW_PRESS)
-		{
-			ssbo_CPUMEM.mode.x = 2;
-		}
-
-		// toggle lighting mode
-		if (key == GLFW_KEY_3 && action == GLFW_PRESS)
-		{
-			ssbo_CPUMEM.mode.x = 3;
+			mycam.one = 1;
+			mycam.two = 0;
+			mycam.three = 0;
+			ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
+			true_num_scene_objects = 5;
+			myscene = scene1;
 		}
 
 		// toggle scene
-		if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		if (key == GLFW_KEY_2 && action == GLFW_PRESS)
 		{
-			mycam.p = !mycam.p;
-			if (mycam.p)
-				true_num_scene_objects = NUM_SHAPES;
-			else
-				true_num_scene_objects = NUM_SHAPES;
+			mycam.one = 0;
+			mycam.two = 1;
+			mycam.three = 0;
+			ssbo_CPUMEM.background = vec4(0);
+			true_num_scene_objects = 3;
+			myscene = scene2;
 		}
+
+		// toggle scene
+		if (key == GLFW_KEY_3 && action == GLFW_PRESS)
+		{
+			mycam.one = 0;
+			mycam.two = 0;
+			mycam.three = 1;
+			ssbo_CPUMEM.background = vec4(0);
+			true_num_scene_objects = 6;
+			myscene = scene3;
+		}
+
+		// // toggle walls... this is broken now
+		// if (key == GLFW_KEY_P && action == GLFW_PRESS)
+		// {
+		// 	mycam.p = !mycam.p;
+		// 	if (mycam.p)
+		// 		true_num_scene_objects = NUM_SHAPES;
+		// 	else
+		// 		true_num_scene_objects = NUM_SHAPES;
+		// }
 
 		// toggle fullscreen aspect ratio
 		if (key == GLFW_KEY_F && action == GLFW_PRESS)
@@ -710,71 +634,55 @@ public:
                                GL_RGBA32F);  // enable texture in shader
         }
 
+    void loadShapeBuffer()
+    {
+    	// must pack simple shapes into buffer
+    	for (int i = 0; i < true_num_scene_objects; i ++)
+    	{
+    		shape* curr = myscene.shapes[i];
+    		if (curr->id() == SPHERE_ID)
+    		{
+    			vec3 center = ((sphere*) curr)->location;
+    			float rad = ((sphere*) curr)->radius;
+    			vec3 color = ((sphere*) curr)->p.rgb;
+    			float reflectivity = curr->reflectivity;
+    			float emissive = curr->emissive;
+    			int id = SPHERE_ID;
 
-	void computeInitGeom()
-	{
-		std::random_device rd;     // only used once to initialise (seed) engine
-		std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
-		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
+    			// sphere:
+    				// vec4: vec3 center, float radius
+    				// vec4: vec3 nothing, bool emissive?
+    				// vec4: nothing
+    				// vec4: vec3 nothing, float reflectivity
+    				// vec4: vec3 color, int shape_id
 
-		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
-		ssbo_CPUMEM.mode = vec4(1,0,0,0);
-		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
-		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
-		// maybe there is a better place to store these important default values...
-		// instead of buried in computeInitGeom
-		// ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
-		ssbo_CPUMEM.background = vec4(0);
-		// ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
-		// ssbo_CPUMEM.light_pos = vec4(-4, 100, 200, 0);
+    			ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
+    			ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
+    			ssbo_CPUMEM.simple_shapes[i][3].w = reflectivity;
+    			ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
+    		}
+    		if (curr->id() == PLANE_ID)
+    		{
+    			vec3 normal = ((plane*) curr)->normal;
+    			float dist_from_orig = ((plane*) curr)->dist_from_orig;
+    			vec3 color = ((plane*) curr)->p.rgb;
+    			vec3 p0 = ((plane*) curr)->p0;
+    			float reflectivity = curr->reflectivity;
+    			float emissive = curr->emissive;
+    			int id = PLANE_ID;
 
-		// must pack simple shapes into buffer
-		for (int i = 0; i < NUM_SHAPES; i ++)
-		{
-			shape* curr = myscene.shapes[i];
-			if (curr->id() == SPHERE_ID)
-			{
-				vec3 center = ((sphere*) curr)->location;
-				float rad = ((sphere*) curr)->radius;
-				vec3 color = ((sphere*) curr)->p.rgb;
-				float reflectivity = curr->reflectivity;
-				float emissive = curr->emissive;
-				int id = SPHERE_ID;
+    			// plane:
+    				// vec4: vec3 normal, float distance from origin
+    				// vec4: vec3 nothing, bool emissive?
+    				// vec4: nothing
+    				// vec4: vec3 point in plane, float reflectivity
+    				// vec4: vec3 color, int shape_id
 
-				// sphere:
-					// vec4: vec3 center, float radius
-					// vec4: vec3 nothing, bool emissive?
-					// vec4: nothing
-					// vec4: vec3 nothing, float reflectivity
-					// vec4: vec3 color, int shape_id
-
-				ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
-				ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
-				ssbo_CPUMEM.simple_shapes[i][3].w = reflectivity;
-				ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
-			}
-			if (curr->id() == PLANE_ID)
-			{
-				vec3 normal = ((plane*) curr)->normal;
-				float dist_from_orig = ((plane*) curr)->dist_from_orig;
-				vec3 color = ((plane*) curr)->p.rgb;
-				vec3 p0 = ((plane*) curr)->p0;
-				float reflectivity = curr->reflectivity;
-				float emissive = curr->emissive;
-				int id = PLANE_ID;
-
-				// plane:
-					// vec4: vec3 normal, float distance from origin
-					// vec4: vec3 nothing, bool emissive?
-					// vec4: nothing
-					// vec4: vec3 point in plane, float reflectivity
-					// vec4: vec3 color, int shape_id
-
-				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
-				ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
-				ssbo_CPUMEM.simple_shapes[i][3] = vec4(p0, reflectivity);
-				ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
-			}
+    			ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
+    			ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
+    			ssbo_CPUMEM.simple_shapes[i][3] = vec4(p0, reflectivity);
+    			ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
+    		}
 			if (curr->id() == RECTANGLE_ID)
 			{
 				vec3 normal = ((rectangle*) curr)->normal;
@@ -800,7 +708,24 @@ public:
 				ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
 			}
 		}
+	}
 
+	void computeInitGeom()
+	{
+		std::random_device rd;     // only used once to initialise (seed) engine
+		std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
+		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
+
+		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
+		ssbo_CPUMEM.mode = vec4(1,0,0,0);
+		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
+		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
+		// maybe there is a better place to store these important default values...
+		// instead of buried in computeInitGeom
+		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
+		// ssbo_CPUMEM.background = vec4(0);
+		// ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+		// ssbo_CPUMEM.light_pos = vec4(-4, 100, 200, 0);
 
 		for (int i = 0; i < WIDTH; i++)
 		{
@@ -810,6 +735,8 @@ public:
 				ssbo_CPUMEM.pixels[1][i][j] = vec4();
 			}
 		}
+
+		loadShapeBuffer();
 
 		for (int i = 0; i < AA * 2; i ++)
 		{
@@ -859,7 +786,6 @@ public:
 		GLuint postProcessingShader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(postProcessingShader, 1, &shader, nullptr);
 
-		rc;
 		CHECKED_GL_CALL(glCompileShader(postProcessingShader));
 		CHECKED_GL_CALL(glGetShaderiv(postProcessingShader, GL_COMPILE_STATUS, &rc));
 		if (!rc)	//error compiling the shader file
@@ -1046,9 +972,10 @@ public:
 
 	void render()
 	{
-
 		double frametime = get_last_elapsed_time();
 		cout << "\r" << "framerate: " << int(1/frametime) << "          " << flush;
+
+		loadShapeBuffer();
 
 		update_camera(frametime);
 

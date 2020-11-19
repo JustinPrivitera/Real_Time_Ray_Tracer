@@ -2,13 +2,13 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
-#define WIDTH 320
-#define HEIGHT 240
+#define WIDTH 440
+#define HEIGHT 330
 #define RECURSION_DEPTH 30
-#define AA 10
-#define NUM_SHAPES 3
+#define AA 4
+#define NUM_SHAPES 10
 
-#define NUM_FRAMES 16
+#define NUM_FRAMES 8
 
 #define SPHERE_ID 1
 #define PLANE_ID 5

@@ -1,7 +1,7 @@
 # final_project_csc572
 final project for csc 572, graduate graphics
 
-use WASD to move
+use WASD, space, and left shift to move
 QEZC to rotate
 P to toggle scene... don't ever do this
 F to toggle aspect ratio
