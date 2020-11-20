@@ -74,8 +74,6 @@ public:
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-
-	// vec4 owie[5000000];
 };
 
 
@@ -164,14 +162,11 @@ class scene
 public:
 	scene(vector<shape*> shapes, vector<light_source> lights) : 
 		shapes(shapes), lights(lights) {}
-	// scene(vector<shape> shapes, vector<light_source> lights, camera cam) : 
-	// 	shapes(shapes), lights(lights), cam(cam) {}
 	scene() : shapes(vector<shape*>()), lights(vector<light_source>()) {}
 
 public:
 	vector<shape*> shapes;
 	vector<light_source> lights;
-	// camera cam;
 };
 
 class Application : public EventCallbacks
@@ -184,8 +179,8 @@ public:
 	// int light_movement = 0;
 
 	scene scene1 = init_scene1();
-	scene scene2 = init_scene2();
-	scene scene3 = init_scene3();
+	scene scene5 = init_scene5();
+	scene scene6 = init_scene6();
 
 	scene myscene = scene1;
 
@@ -232,35 +227,35 @@ public:
 		// sphere
 		vec3 center = vec3(0,-0.5,0);
 		float radius = 2;
-		pigment color = pigment(vec3(0.8,0.2,0.5)); // TODO rip out pigments
+		vec3 color = vec3(0.8,0.2,0.5);
 		sphere* mysphere = new sphere(center,radius,color);
 		mysphere->reflectivity = 0.5;
 
 		// sphere
 		center = vec3(4,-0.5,-2);
 		radius = 3.5;
-		color = pigment(vec3(0.8,0.8,0.1));
+		color = vec3(0.8,0.8,0.1);
 		sphere* mysphere2 = new sphere(center,radius,color);
 		mysphere2->reflectivity = 0.9;
 
 		// sphere
 		center = vec3(-4.5,4,-15);
 		radius = 4;
-		color = pigment(vec3(0.2,0.8,0.1));
+		color = vec3(0.2,0.8,0.1);
 		sphere* mysphere3 = new sphere(center,radius,color);
 		mysphere3->reflectivity = 0.2;
 
 		// sphere
 		center = vec3(-8,-1,2);
 		radius = 1.5;
-		color = pigment(vec3(1,1,1));
+		color = vec3(1,1,1);
 		sphere* mysphere4 = new sphere(center,radius,color);
 		mysphere4->reflectivity = 0;
 
 		// plane
 		vec3 normal = vec3(0, 1, 0);
 		float distance_from_origin = -4;
-		color = pigment(vec3(0.3,0.0,0.5));
+		color = vec3(0.3,0.0,0.5);
 		plane* myplane = new plane(normal, distance_from_origin, color);
 		
 		// shapes vector
@@ -279,7 +274,7 @@ public:
 		return scene1;
 	}
 
-	scene init_scene2()
+	scene init_scene5()
 	{
 		vector<light_source> lights = vector<light_source>();
 		
@@ -288,7 +283,7 @@ public:
 		// sphere
 		vec3 center = vec3(0,14,0);
 		float radius = 8;
-		pigment color = pigment(vec3(1.5,1.5,1.5)); // TODO rip out pigments
+		vec3 color = vec3(1.5,1.5,1.5);
 		sphere* s5sphere1 = new sphere(center,radius,color);
 		s5sphere1->emissive = true;
 
@@ -296,21 +291,21 @@ public:
 		// vec3 llc = vec3(4,6,4);
 		// vec3 up = vec3(-8,0,0);
 		// vec3 right = vec3(0,0,-8);
-		// color = pigment(vec3(1.5,1.5,1.5));
+		// color = vec3(1.5,1.5,1.5);
 		// rectangle* s5rect1 = new rectangle(llc, right, up, color);
 		// s5rect1->emissive = true;
 
 		// sphere
 		center = vec3(0,0,0);
 		radius = 2;
-		color = pigment(vec3(0.2,0.6,0.8));
+		color = vec3(0.2,0.6,0.8);
 		sphere* s5sphere2 = new sphere(center,radius,color);
 		s5sphere2->reflectivity = 0.4;
 
 		// sphere
 		center = vec3(0,-35,0);
 		radius = 33;
-		color = pigment(vec3(0.8,0.6,0.2));
+		color = vec3(0.8,0.6,0.2);
 		sphere* s5sphere3 = new sphere(center,radius,color);
 
 		myshapes5.push_back(s5sphere1);
@@ -323,7 +318,7 @@ public:
 		return scene5;
 	}
 
-	scene init_scene3()
+	scene init_scene6()
 	{
 		vector<light_source> lights = vector<light_source>();
 		vector<shape*> myshapes6 = vector<shape*>();
@@ -331,41 +326,41 @@ public:
 		// sphere
 		vec3 center = vec3(0,12,0);
 		float radius = 6;
-		pigment color = pigment(vec3(4,4,4)); // TODO rip out pigments
+		vec3 color = vec3(4,4,4);
 		sphere* s6sphere1 = new sphere(center,radius,color);
 		s6sphere1->emissive = true;
 
 		// sphere
 		center = vec3(-8,0,0);
 		radius = 2;
-		color = pigment(vec3(8, 8, 16)); // TODO rip out pigments
+		color = vec3(8, 8, 16);
 		sphere* s6sphere2 = new sphere(center,radius,color);
 		s6sphere2->emissive = true;
 
 		// sphere
 		center = vec3(0,0,0);
 		radius = 2;
-		color = pigment(vec3(0.2,0.6,0.8));
+		color = vec3(0.2,0.6,0.8);
 		sphere* s6sphere3 = new sphere(center,radius,color);
 		s6sphere3->reflectivity = 0.4;
 
 		// sphere
 		center = vec3(0,-35,0);
 		radius = 33;
-		color = pigment(vec3(0.8,0.6,0.2));
+		color = vec3(0.8,0.6,0.2);
 		sphere* s6sphere4 = new sphere(center,radius,color);
 
 		// sphere
 		center = vec3(2,1,3);
 		radius = 0.5;
-		color = pigment(vec3(1,1,1));
+		color = vec3(1,1,1);
 		sphere* s6sphere5 = new sphere(center,radius,color);
 		s6sphere5->reflectivity = 0.0;
 
 		// sphere
 		center = vec3(4.5, 0.2, 5);
 		radius = 2.25;
-		color = pigment(vec3(1,1,1));
+		color = vec3(1,1,1);
 		sphere* s6sphere6 = new sphere(center,radius,color);
 		s6sphere6->reflectivity = 0.0;
 
@@ -419,6 +414,23 @@ public:
 		if (key == GLFW_KEY_D && action == GLFW_RELEASE)
 		{
 			mycam.d = 0;
+		}
+		// move up and down
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
+		{
+			mycam.ls = 1;
+		}
+		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
+		{
+			mycam.ls = 0;
+		}
+		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+		{
+			mycam.sp = 1;
+		}
+		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
+		{
+			mycam.sp = 0;
 		}
 
 		// camera rotation
@@ -477,7 +489,7 @@ public:
 			mycam.three = 0;
 			ssbo_CPUMEM.background = vec4(0);
 			true_num_scene_objects = 3;
-			myscene = scene2;
+			myscene = scene5;
 		}
 
 		// toggle scene
@@ -488,18 +500,8 @@ public:
 			mycam.three = 1;
 			ssbo_CPUMEM.background = vec4(0);
 			true_num_scene_objects = 6;
-			myscene = scene3;
+			myscene = scene6;
 		}
-
-		// // toggle walls... this is broken now
-		// if (key == GLFW_KEY_P && action == GLFW_PRESS)
-		// {
-		// 	mycam.p = !mycam.p;
-		// 	if (mycam.p)
-		// 		true_num_scene_objects = NUM_SHAPES;
-		// 	else
-		// 		true_num_scene_objects = NUM_SHAPES;
-		// }
 
 		// toggle fullscreen aspect ratio
 		if (key == GLFW_KEY_F && action == GLFW_PRESS)
@@ -509,24 +511,6 @@ public:
 				aspect_ratio = ASPECT_RATIO;
 			else
 				aspect_ratio = FULLSCREEN_ASPECT_RATIO;
-		}
-
-		// move up and down
-		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-		{
-			mycam.ls = 1;
-		}
-		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
-		{
-			mycam.ls = 0;
-		}
-		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-		{
-			mycam.sp = 1;
-		}
-		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
-		{
-			mycam.sp = 0;
 		}
 	}
 
@@ -647,7 +631,7 @@ public:
     		{
     			vec3 center = ((sphere*) curr)->location;
     			float rad = ((sphere*) curr)->radius;
-    			vec3 color = ((sphere*) curr)->p.rgb;
+    			vec3 color = ((sphere*) curr)->color;
     			float reflectivity = curr->reflectivity;
     			float emissive = curr->emissive;
     			int id = SPHERE_ID;
@@ -668,7 +652,7 @@ public:
     		{
     			vec3 normal = ((plane*) curr)->normal;
     			float dist_from_orig = ((plane*) curr)->dist_from_orig;
-    			vec3 color = ((plane*) curr)->p.rgb;
+    			vec3 color = ((plane*) curr)->color;
     			vec3 p0 = ((plane*) curr)->p0;
     			float reflectivity = curr->reflectivity;
     			float emissive = curr->emissive;
@@ -691,7 +675,7 @@ public:
 				vec3 normal = ((rectangle*) curr)->normal;
 				vec3 right = ((rectangle*) curr)->right;
 				vec3 up = ((rectangle*) curr)->up;
-				vec3 color = ((rectangle*) curr)->p.rgb;
+				vec3 color = ((rectangle*) curr)->color;
 				vec3 llc = ((rectangle*) curr)->llv;
 				float reflectivity = curr->reflectivity;
 				float emissive = curr->emissive;
@@ -727,8 +711,6 @@ public:
 		// instead of buried in computeInitGeom
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 		// ssbo_CPUMEM.background = vec4(0);
-		// ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
-		// ssbo_CPUMEM.light_pos = vec4(-4, 100, 200, 0);
 
 		for (int i = 0; i < WIDTH; i++)
 		{
@@ -812,10 +794,10 @@ public:
 
 	void compute()
 	{
-		static int flap = 0;
+		static int frame_num = 0;
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
-		ssbo_CPUMEM.mode.y = flap;
+		ssbo_CPUMEM.mode.y = frame_num;
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;
 		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
 		ssbo_CPUMEM.vertical = vec4(vertical, 0);
@@ -865,7 +847,7 @@ public:
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-		flap = (flap + 1) % NUM_FRAMES;
+		frame_num = (frame_num + 1) % NUM_FRAMES;
 	}
 
 	//General OGL initialization - set OGL state here
@@ -916,7 +898,7 @@ public:
 		float rot_x = 0.0;
 		bool rotate = false;
 		bool rotate_up_down = false;
-		// i wonder if it would be better to store this value in the camera, and update when needed?
+		// I wonder if it would be better to store this value in the camera, and update when needed?
 		vec3 right = normalize(cross(rt_camera.up, rt_camera.look_towards));
 		if (mycam.w == 1)
 			rt_camera.location -= 5.0 * rt_camera.look_towards * frametime;
@@ -989,8 +971,6 @@ public:
 		horizontal = aspect_ratio * u;
 		vertical = VERT_ASPECT_RATIO * v;
 
-		// llc = rt_camera.location - 0.5 * (horizontal + vertical) - w;
-
 		llc_minus_campos = -0.5 * (horizontal + vertical) - w;
 
 		compute(); // do the ray tracing here
@@ -1016,8 +996,6 @@ public:
 //******************************************************************************************
 int main(int argc, char **argv)
 {
-	//outFile.open("../out.ppm");
-
 	std::string resourceDir = "../resources"; // Where the resources are loaded from
 	if (argc >= 2)
 	{
@@ -1026,8 +1004,6 @@ int main(int argc, char **argv)
 
 	Application *application = new Application();
 
-	///////////////////////////////////////////////////////////////
-	// ComputeApplication *computeapplication = new ComputeApplication();
 	srand(time(0));
 
 	glfwInit();
@@ -1043,8 +1019,6 @@ int main(int argc, char **argv)
 
 	printf("max global (total) work group size x:%i y:%i z:%i\n",
 		work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
-
-	//////////////////////////////////////////////////////////////////////
 
 	/* your main will always include a similar set up to establish your window
 		and GL context, etc. */
@@ -1069,13 +1043,10 @@ int main(int argc, char **argv)
         glfwSwapBuffers(windowManager->getHandle());
         // Poll for and process events.
         glfwPollEvents();
-        // timef = 1./get_last_elapsed_time();
-        // printf("%f\n", timef);
     }
 
 	// Quit program.
 	windowManager->shutdown();
-	//outFile.close();
 	cout << endl;
 	return 0;
 }

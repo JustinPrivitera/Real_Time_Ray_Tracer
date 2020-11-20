@@ -1,8 +1,5 @@
 #pragma once
 
-#include "pigment.h"
-// #include "finish.h"
-
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 using namespace std;
@@ -13,19 +10,16 @@ using namespace glm;
 class shape 
 {
 public:
-	shape() : p(pigment())
+	shape() : color(vec3())
 	{
 		reflectivity = 1;
 		emissive = false;
 	}
-	shape(pigment p) : p(p)
+	shape(vec3 color) : color(color)
 	{
 		reflectivity = 1;
 		emissive = false;
 	}
-	// shape() : p(pigment()), f(finish()) {}
-	// shape(pigment p) : p(p), f(finish()) {}
-	// shape(pigment p, finish f) : p(p), f(f) {}
 	virtual vec3 get_location() const {
 		return vec3();
 	}
@@ -37,8 +31,7 @@ public:
 	}
 
 public:
-	pigment p;
+	vec3 color;
 	float reflectivity;
 	bool emissive;
-	// finish f;
 };

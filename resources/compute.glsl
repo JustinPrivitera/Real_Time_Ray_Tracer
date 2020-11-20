@@ -57,48 +57,9 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-
-	// vec4 owie[5000000];
 };
 
 uniform int sizeofbuffer;
-
-float det(mat2 matrix) 
-{
-    return matrix[0].x * matrix[1].y - matrix[0].y * matrix[1].x;
-}
-
-mat3 inverse(mat3 matrix) 
-{
-    vec3 row0 = matrix[0];
-    vec3 row1 = matrix[1];
-    vec3 row2 = matrix[2];
-
-    vec3 minors0 = vec3(
-        det(mat2(row1.y, row1.z, row2.y, row2.z)),
-        det(mat2(row1.z, row1.x, row2.z, row2.x)),
-        det(mat2(row1.x, row1.y, row2.x, row2.y))
-    );
-    vec3 minors1 = vec3(
-        det(mat2(row2.y, row2.z, row0.y, row0.z)),
-        det(mat2(row2.z, row2.x, row0.z, row0.x)),
-        det(mat2(row2.x, row2.y, row0.x, row0.y))
-    );
-    vec3 minors2 = vec3(
-        det(mat2(row0.y, row0.z, row1.y, row1.z)),
-        det(mat2(row0.z, row0.x, row1.z, row1.x)),
-        det(mat2(row0.x, row0.y, row1.x, row1.y))
-    );
-
-    mat3 adj = transpose(mat3(minors0, minors1, minors2));
-
-    return (1.0 / dot(row0, minors0)) * adj;
-}
-
-vec3 solve(mat3 m, vec3 b)
-{
-	return inverse(m) * b;
-}
 
 float random(vec2 st) 
 {
@@ -166,27 +127,6 @@ float plane_eval_ray(vec3 pos, vec3 dir, int shape_index)
 	return dot(normal, p0 - pos) / denom;
 }
 
-float rectangle_eval_ray(vec3 pos, vec3 dir, int shape_index)
-{
-	vec3 normal = simple_shapes[shape_index][0].xyz;
-	float denom = dot(normal, dir);
-	if (denom < 0.001 && denom > -0.001)
-		return -1;
-	vec3 llc = simple_shapes[shape_index][3].xyz;
-	float t = dot(normal, llc - pos) / denom;
-	if (t <= 0)
-		return -1;
-	vec3 pt = pos + t * dir;
-	vec3 right = simple_shapes[shape_index][2].xyz;
-	vec3 up = simple_shapes[shape_index][1].xyz;
-	mat3 A = mat3(right, up, llc);
-	vec3 vect = solve(A, pt);
-	if (vect.x < 1 && vect.x > -0.001 && vect.y < 1 && vect.y > -0.001 && vect.z > 0)
-		return t;
-	else
-		return -1;
-}
-
 float eval_ray(vec3 pos, vec3 dir, int shape_index)
 {
 	int shape_id = int(simple_shapes[shape_index][4].w);
@@ -198,10 +138,10 @@ float eval_ray(vec3 pos, vec3 dir, int shape_index)
 	{
 		return plane_eval_ray(pos, dir, shape_index);
 	}
-	if (shape_id == RECTANGLE_ID)
-	{
-		return rectangle_eval_ray(pos, dir, shape_index);
-	}
+	// if (shape_id == RECTANGLE_ID)
+	// {
+	// 	return rectangle_eval_ray(pos, dir, shape_index);
+	// }
 	// other shapes?
 	return -1;
 }
@@ -416,6 +356,7 @@ void main()
 
 	vec2 randy;
 
+	// anti-aliasing
 	for (int aa = 0; aa < AA; aa ++)
 	{
 		int first = aa * 2;
