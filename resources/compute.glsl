@@ -15,10 +15,6 @@
 #define RECTANGLE_ID 3
 // others
 
-#define PHONG_SHADOW_MIN 0.06
-
-// #define REFLECTION_DEGRADATION_CONSTANT 1
-
 // one shader unit per pixel
 
 layout(local_size_x = 1, local_size_y = 1) in;
