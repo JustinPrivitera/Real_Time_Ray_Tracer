@@ -20,17 +20,16 @@ final project for csc 572, graduate graphics
 * Real time reflections
 * Realistic shadowing
 * Multisample Anti Aliasing
-* Post processing phase that applies Temporal Anti-Aliasing
+* Post processing phase that applies Temporal Anti-Aliasing and Spatial Anti-Aliasing
 
 ### How it works:
 1. The CPU side prepares the scene and initializes everything
 2. The first compute shader stage creates rays, intersects them with geometry, and bounces depending on the surface. It saves computed colors for each pixel, as well as normals and depth.
-3. The post-processing compute shader blends pixels with the last several frames using Temporal AA.
+3. The post-processing compute shader blends pixels with the last several frames using Temporal and Spatial AA.
 
 ### Notes:
 * This project is incomplete. There are plans to add the following...
-	+ Spatial Anti-Aliasing in the Post Processing Step
-	+ Scene object movements and animations
+	+ Scene object movements/animations
 	+ Triangles, Rectangles, and other more complicated objects
 * Some ideas that may or may not come to fruition:
 	+ Importance Sampling to get better mileage out of ray calculations
