@@ -16,6 +16,8 @@ final project for csc 572, graduate graphics
 * 1, 2, and 3 to toggle the scene
 
 ### Key Features:
+* Compute Shaders
+* OpenGL
 * Ray traced ambient occlusion
 * Real time reflections
 * Realistic shadowing
