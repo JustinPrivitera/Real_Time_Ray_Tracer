@@ -25,9 +25,9 @@ using namespace glm;
 // shared_ptr<Shape> shape;
 
 // resolution
-#define WIDTH 400
-#define HEIGHT 300
-#define AA 3
+#define WIDTH 440
+#define HEIGHT 330
+#define AA 4
 
 // number of scene objects
 #define NUM_SHAPES 10
@@ -756,24 +756,29 @@ public:
 			exit(1);
 		}
 
+
 		computeProgram = glCreateProgram();
 		glAttachShader(computeProgram, computeShader);
 		glLinkProgram(computeProgram);
 		glUseProgram(computeProgram);
+
 		
 		GLuint block_index;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
 
+
 		ShaderString = readFileAsString("../resources/postprocessing.glsl");
 		shader = ShaderString.c_str();
 		GLuint postProcessingShader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(postProcessingShader, 1, &shader, nullptr);
 
+
+		GLint rcp;
 		CHECKED_GL_CALL(glCompileShader(postProcessingShader));
-		CHECKED_GL_CALL(glGetShaderiv(postProcessingShader, GL_COMPILE_STATUS, &rc));
-		if (!rc)	//error compiling the shader file
+		CHECKED_GL_CALL(glGetShaderiv(postProcessingShader, GL_COMPILE_STATUS, &rcp));
+		if (!rcp)	//error compiling the shader file
 		{
 			GLSL::printShaderInfoLog(postProcessingShader);
 			std::cout << "Error compiling post processing shader " << std::endl;
@@ -781,10 +786,12 @@ public:
 			exit(1);
 		}
 
+
 		postProcessingProgram = glCreateProgram();
 		glAttachShader(postProcessingProgram, postProcessingShader);
 		glLinkProgram(postProcessingProgram);
 		glUseProgram(postProcessingProgram);
+
 
 		block_index;
 		block_index = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");

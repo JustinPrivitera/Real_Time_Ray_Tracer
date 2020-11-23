@@ -1,11 +1,11 @@
-#version 450 
+#version 460 
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
-#define WIDTH 400
-#define HEIGHT 300
-#define RECURSION_DEPTH 30
-#define AA 3
+#define WIDTH 440
+#define HEIGHT 330
+#define AA 4
+#define RECURSION_DEPTH 20
 #define NUM_SHAPES 10
 
 #define NUM_FRAMES 8
@@ -221,8 +221,11 @@ void ambient_occlusion_helper_first_time(inout vec4 array[3], int depth, int aa)
 			// other shapes... this is not yet implemented
 		}
 
-		normals_buffer[flap][x][y] = vec4(normal, 1);
-		depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
+		if (aa < 0.001)
+		{
+			normals_buffer[flap][x][y] = vec4(normal, 1);
+			depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
+		}
 
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
@@ -238,8 +241,11 @@ void ambient_occlusion_helper_first_time(inout vec4 array[3], int depth, int aa)
 	}
 	else // return background color
 	{
-		normals_buffer[flap][x][y] = vec4(0);
-		depth_buffer[flap][x][y] = vec4(0);
+		if (aa < 0.001)
+		{
+			normals_buffer[flap][x][y] = vec4(0);
+			depth_buffer[flap][x][y] = vec4(0);
+		}
 
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion

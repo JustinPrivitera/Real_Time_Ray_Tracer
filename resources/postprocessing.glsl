@@ -1,11 +1,11 @@
-#version 450 
+#version 460 
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
 
-#define WIDTH 400
-#define HEIGHT 300
-#define AA 3
+#define WIDTH 440
+#define HEIGHT 330
+#define AA 4
 #define NUM_SHAPES 10
 
 #define NUM_FRAMES 8
@@ -68,10 +68,84 @@ void main()
 	{
 		float new_depth = depth_buffer[new_frame][x][y].x;
 
+		// spatial
+		vec4 left,right,up,down;
+		float l,r,u,d;
+		vec3 l_normal, r_normal, u_normal, d_normal;
+		float l_depth, r_depth, u_depth, d_depth;
+
+		// vec4 upleft,upright,downleft,downright
+
+		if (x < WIDTH)
+		{
+			right = pixels[new_frame][x + 1][y];
+			r_normal = normals_buffer[new_frame][x + 1][y].xyz;
+			r_depth = depth_buffer[new_frame][x + 1][y].x;
+
+			float normal_dot = dot(new_normal.xyz, r_normal);
+			float depth_diff = (1 - clamp(abs(new_depth - r_depth), 0, 1));
+			// float mag = length(right);
+			r = normal_dot * depth_diff + 0.2;
+		}
+		else
+		{
+			r = 0;
+		}
+
+		if (x > 0)
+		{
+			left = pixels[new_frame][x - 1][y];
+			l_normal = normals_buffer[new_frame][x - 1][y].xyz;
+			l_depth = depth_buffer[new_frame][x - 1][y].x;
+
+			float normal_dot = dot(new_normal.xyz, l_normal);
+			float depth_diff = (1 - clamp(abs(new_depth - l_depth), 0, 1));
+			// float mag = length(left);
+			l = normal_dot * depth_diff + 0.2;
+		}
+		else
+		{
+			l = 0;
+		}
+
+		if (y + 1 < HEIGHT)
+		{
+			up = pixels[new_frame][x][y + 1];
+			u_normal = normals_buffer[new_frame][x][y + 1].xyz;
+			u_depth = depth_buffer[new_frame][x][y + 1].x;
+
+			float normal_dot = dot(new_normal.xyz, u_normal);
+			float depth_diff = (1 - clamp(abs(new_depth - u_depth), 0, 1));
+			// float mag = length(up);
+			u = normal_dot * depth_diff + 0.2;
+		}
+		else
+		{
+			u = 0;
+		}
+
+		if (y - 1 > 0)
+		{
+			down = pixels[new_frame][x][y - 1];
+			d_normal = normals_buffer[new_frame][x][y - 1].xyz;
+			d_depth = depth_buffer[new_frame][x][y - 1].x;
+
+			float normal_dot = dot(new_normal.xyz, d_normal);
+			float depth_diff = (1 - clamp(abs(new_depth - d_depth), 0, 1));
+			// float mag = length(down);
+			d = normal_dot * depth_diff + 0.2;
+		}
+		else
+		{
+			d = 0;
+		}
+
+		color = (color + u * up + d * down + l * left + r * right) / (1 + u + d + l + r);
+
 		// temporal AA
 
 		vec4 color_sum = vec4(0);
-		float denominator = 1;
+		float denominator = 0.9;
 		for (int i = 1; i < NUM_FRAMES; i ++)
 		{
 			int curr_frame = (new_frame + NUM_FRAMES - i) % NUM_FRAMES;
@@ -83,7 +157,7 @@ void main()
 
 			float coeff = normal_dot * depth_diff;
 
-			if (coeff > 0.71)
+			if (coeff > 0.85)
 			{
 				color_sum += coeff * pixels[curr_frame][x][y];
 				denominator += coeff;
@@ -92,8 +166,10 @@ void main()
 				break;
 		}
 
-		color = (color + color_sum) / denominator;
+		color = (color * 0.9 + color_sum) / denominator;
 	}
+
+	pixels[new_frame][x][y] = color;
 
 	// write image
 	imageStore(img_output, ivec2(x,y), color);
