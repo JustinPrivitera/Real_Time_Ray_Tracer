@@ -1,8 +1,0 @@
-BasedOnStyle: Google
-IndentWidth: 4
-Language: Cpp
-BreakBeforeBraces: Allman
-ColumnLimit: 80
-AllowShortFunctionsOnASingleLine: false
-DerivePointerAlignment: false
-PointerAlignment: Left
