@@ -281,8 +281,8 @@ public:
 		vector<shape*> myshapes5 = vector<shape*>();
 
 		// sphere
-		vec3 center = vec3(0,14,0);
-		float radius = 8;
+		vec3 center = vec3(0,18,0);
+		float radius = 10;
 		vec3 color = vec3(1.5,1.5,1.5);
 		sphere* s5sphere1 = new sphere(center,radius,color);
 		s5sphere1->emissive = true;
@@ -518,12 +518,12 @@ public:
 	// written
 	void mouseCallback(GLFWwindow *window, int button, int action, int mods)
 	{
-		double posX, posY;
-		float newPt[2];
-		if (action == GLFW_PRESS)
-		{
+		// double posX, posY;
+		// float newPt[2];
+		// if (action == GLFW_PRESS)
+		// {
 			
-		}
+		// }
 	}
 
 	//if the window is resized, capture the new size and reset the viewport
@@ -581,8 +581,7 @@ public:
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
             glBindVertexArray(0);
 
-            int width, height, channels;
-            char filepath[1000];
+            int width, height;
 
             // shader:
             GLuint Tex1Location;
@@ -793,7 +792,6 @@ public:
 		glUseProgram(postProcessingProgram);
 
 
-		block_index;
 		block_index = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(postProcessingProgram, block_index, ssbo_binding_point_index);

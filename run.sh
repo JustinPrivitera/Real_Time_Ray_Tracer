@@ -1,6 +1,5 @@
 #!/bin/bash
 
-rm *.ppm
 rm -rf build
 mkdir build
 cd build

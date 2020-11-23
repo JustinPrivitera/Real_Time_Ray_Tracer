@@ -62,7 +62,7 @@ void Shape::loadMesh(const string &meshName, string *mtlpath, unsigned char *(lo
 		}
 	}
 	//material:
-	for (int i = 0; i < objMaterials.size(); i++)
+	for (int i = 0; i < int(objMaterials.size()); i++)
 		if (objMaterials[i].diffuse_texname.size()>0)
 		{
 			char filepath[1000];
@@ -87,9 +87,6 @@ void Shape::loadMesh(const string &meshName, string *mtlpath, unsigned char *(lo
 			glGenerateMipmap(GL_TEXTURE_2D);
 			//delete[] data;
 		}
-
-	int z;
-	z = 0;
 }
 
 void Shape::resize()

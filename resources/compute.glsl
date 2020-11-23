@@ -165,99 +165,15 @@ vec3 get_pt_within_unit_sphere(int aa)
 }
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void ambient_occlusion_helper_first_time(inout vec4 array[3], int depth, int aa)
-// vec4 ambient_occlusion(vec3 pos, vec3 dir, int depth, int last_ind)
-{
-	uint x = gl_GlobalInvocationID.x;
-	uint y = gl_GlobalInvocationID.y;
-
-	if (depth <= 0)
-		array[0] = vec4(0);
-
-	vec3 pos = array[1].xyz;
-	vec3 dir = array[2].xyz;
-	// int last_ind = int(array[2].w);
-
-	float t = -1;
-	float res_t;
-	int ind = -1;
-
-	// the following math just gets the closest collision
-	for (int i = 0; i < int(mode.z); i ++)
-	{
-		res_t = eval_ray(pos, dir, i);
-		if (res_t > 0.0001)
-		{
-			if (res_t < t || t < 0)
-			{
-				t = res_t;
-				ind = i;
-			}
-		}
-	}
-
-	int flap = int(mode.y);
-
-	if (ind != -1) // we must have hit something
-	{
-		vec4 attenuation = simple_shapes[ind][4];
-
-		if (simple_shapes[ind][1].w > 0.99) // is this shape emmissive?
-		{
-			array[0] = attenuation;
-			array[1].w = 1; // this means stop the recursion
-			return;
-		}
-
-		vec3 curr_pos = camera_location.xyz + t * dir;
-		int id = int(attenuation.w);
-		vec3 normal;
-		if (id == SPHERE_ID)
-			normal = sphere_compute_normal(curr_pos, ind);
-		else if (id == PLANE_ID)
-			normal = simple_shapes[ind][0].xyz;
-		else
-		{
-			// other shapes... this is not yet implemented
-		}
-
-		if (aa < 0.001)
-		{
-			normals_buffer[flap][x][y] = vec4(normal, 1);
-			depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
-		}
-
-		array[0] = attenuation;
-		array[1] = vec4(curr_pos, 0);
-
-		float reflect = simple_shapes[ind][3].w;
-		if (reflect > 0.999) // no reflection
-			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
-		else // reflection
-		{
-			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
-			array[2] = vec4(normalize(R + reflect * get_pt_within_unit_sphere(aa)), ind);
-		}
-	}
-	else // return background color
-	{
-		if (aa < 0.001)
-		{
-			normals_buffer[flap][x][y] = vec4(0);
-			depth_buffer[flap][x][y] = vec4(0);
-		}
-
-		array[0] = background;
-		array[1].w = 1; // this means stop the recursion
-	}
-}
-
-// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
 void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 // vec4 ambient_occlusion(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	if (depth <= 0)
+	{
 		array[0] = vec4(0);
+		array[1].w = 1; // this means stop the recursion
+		return;
+	}
 
 	vec3 pos = array[1].xyz;
 	vec3 dir = array[2].xyz;
@@ -303,6 +219,15 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 			// other shapes... this is not yet implemented
 		}
 
+		if (aa < 0.001 && depth == RECURSION_DEPTH)
+		{
+			uint x = gl_GlobalInvocationID.x;
+			uint y = gl_GlobalInvocationID.y;
+			int flap = int(mode.y);
+			normals_buffer[flap][x][y] = vec4(normal, 1);
+			depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
+		}
+
 		array[0] = attenuation;
 		array[1] = vec4(curr_pos, 0);
 
@@ -317,6 +242,15 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 	}
 	else // return background color
 	{
+		if (aa < 0.001 && depth == RECURSION_DEPTH)
+		{
+			uint x = gl_GlobalInvocationID.x;
+			uint y = gl_GlobalInvocationID.y;
+			int flap = int(mode.y);
+			normals_buffer[flap][x][y] = vec4(0);
+			depth_buffer[flap][x][y] = vec4(0);
+		}
+
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion
 	}
@@ -332,7 +266,7 @@ vec4 ambient_occlusion(vec3 dir, int aa)
 	ambient_occlusion_buffer[2] = vec4(dir, 0);
 
 	// do the first iteration outside
-	ambient_occlusion_helper_first_time(ambient_occlusion_buffer, RECURSION_DEPTH, aa);
+	ambient_occlusion_helper(ambient_occlusion_buffer, RECURSION_DEPTH, aa);
 	vec4 result_color = ambient_occlusion_buffer[0];
 
 	if (ambient_occlusion_buffer[1].w > 0.99)
@@ -358,8 +292,17 @@ void main()
 
 	vec2 randy;
 
+	{
+		// ray direction calculation
+		float hp = float(xy.x) / WIDTH;
+		float vp = float(xy.y) / HEIGHT;
+		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+
+		result_color += ambient_occlusion(dir, 0);
+	}
+
 	// anti-aliasing
-	for (int aa = 0; aa < AA; aa ++)
+	for (int aa = 1; aa < AA; aa ++)
 	{
 		int first = aa * 2;
 		int second = first + 1;
