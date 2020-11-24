@@ -785,16 +785,15 @@ public:
 			exit(1);
 		}
 
-
 		postProcessingProgram = glCreateProgram();
 		glAttachShader(postProcessingProgram, postProcessingShader);
 		glLinkProgram(postProcessingProgram);
 		glUseProgram(postProcessingProgram);
 
-
-		block_index = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint block_index2;
+		block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(postProcessingProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index);
 	}
 
 	void compute()
@@ -830,10 +829,11 @@ public:
 		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		block_index = 1;
-		block_index = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(postProcessingProgram, block_index, ssbo_binding_point_index);
+		GLuint block_index2;
+		block_index2 = 1;
+		block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index2 = 0;
+		glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index2);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
 		glUseProgram(postProcessingProgram);
 

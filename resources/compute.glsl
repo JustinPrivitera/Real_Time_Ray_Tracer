@@ -246,6 +246,7 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
 			array[2] = vec4(normalize(R + reflect * get_pt_within_unit_sphere(aa)), 0);
 		}
+		return;
 	}
 	else // return background color
 	{
@@ -262,6 +263,7 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 		array[1].w = 1; // this means stop the recursion
 
 		depth_buffer[frame][x][y].y = RECURSION_DEPTH - depth;
+		return;
 	}
 }
 
