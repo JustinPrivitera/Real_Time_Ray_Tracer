@@ -166,12 +166,15 @@ vec3 get_pt_within_unit_sphere(int aa)
 
 // return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
 void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
-// vec4 ambient_occlusion(vec3 pos, vec3 dir, int depth, int last_ind)
 {
 	if (depth <= 0)
 	{
 		array[0] = vec4(0);
 		array[1].w = 1; // this means stop the recursion
+		uint x = gl_GlobalInvocationID.x;
+		uint y = gl_GlobalInvocationID.y;
+		int frame = int(mode.y);
+		depth_buffer[frame][x][y].y = RECURSION_DEPTH;
 		return;
 	}
 
@@ -204,6 +207,10 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 		{
 			array[0] = attenuation;
 			array[1].w = 1; // this means stop the recursion
+			uint x = gl_GlobalInvocationID.x;
+			uint y = gl_GlobalInvocationID.y;
+			int frame = int(mode.y);
+			depth_buffer[frame][x][y].y = RECURSION_DEPTH - depth;
 			return;
 		}
 
@@ -223,9 +230,9 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 		{
 			uint x = gl_GlobalInvocationID.x;
 			uint y = gl_GlobalInvocationID.y;
-			int flap = int(mode.y);
-			normals_buffer[flap][x][y] = vec4(normal, 1);
-			depth_buffer[flap][x][y] = vec4(t, 0, 0, 1);
+			int frame = int(mode.y);
+			normals_buffer[frame][x][y] = vec4(normal, 1);
+			depth_buffer[frame][x][y] = vec4(t, 0, 0, 1);
 		}
 
 		array[0] = attenuation;
@@ -237,42 +244,38 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 		else // reflection
 		{
 			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
-			array[2] = vec4(normalize(R + reflect * get_pt_within_unit_sphere(aa)), ind);
+			array[2] = vec4(normalize(R + reflect * get_pt_within_unit_sphere(aa)), 0);
 		}
 	}
 	else // return background color
 	{
+		uint x = gl_GlobalInvocationID.x;
+		uint y = gl_GlobalInvocationID.y;
+		int frame = int(mode.y);
 		if (aa < 0.001 && depth == RECURSION_DEPTH)
 		{
-			uint x = gl_GlobalInvocationID.x;
-			uint y = gl_GlobalInvocationID.y;
-			int flap = int(mode.y);
-			normals_buffer[flap][x][y] = vec4(0);
-			depth_buffer[flap][x][y] = vec4(0);
+			normals_buffer[frame][x][y] = vec4(0);
+			depth_buffer[frame][x][y] = vec4(0);
 		}
 
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion
+
+		depth_buffer[frame][x][y].y = RECURSION_DEPTH - depth;
 	}
 }
 
 vec4 ambient_occlusion(vec3 dir, int aa)
 {
-	// vec4 result_color = vec4(1);
+	vec4 result_color = vec4(1);
+	// vec4 attenuation, shape_id, vec4 pos, stop bit, vec4 dir, nothing
 	vec4 ambient_occlusion_buffer[3];
 
 	ambient_occlusion_buffer[1].xyz = camera_location.xyz;
 	ambient_occlusion_buffer[1].w = 0; // stop bit is set to 0
 	ambient_occlusion_buffer[2] = vec4(dir, 0);
 
-	// do the first iteration outside
-	ambient_occlusion_helper(ambient_occlusion_buffer, RECURSION_DEPTH, aa);
-	vec4 result_color = ambient_occlusion_buffer[0];
-
-	if (ambient_occlusion_buffer[1].w > 0.99)
-		return result_color;
-
-	int i = RECURSION_DEPTH - 1;
+	int i = RECURSION_DEPTH;
 	while (i > 0)
 	{
 		ambient_occlusion_helper(ambient_occlusion_buffer, i, aa);
@@ -287,6 +290,10 @@ vec4 ambient_occlusion(vec3 dir, int aa)
 void main()
 {
 	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+	uint x = xy.x;
+	uint y = xy.y;
+	int frame = int(mode.y);
+	float depth_sum = 0;
 
 	vec4 result_color = vec4(0);
 
@@ -294,11 +301,12 @@ void main()
 
 	{
 		// ray direction calculation
-		float hp = float(xy.x) / WIDTH;
-		float vp = float(xy.y) / HEIGHT;
+		float hp = float(x) / WIDTH;
+		float vp = float(y) / HEIGHT;
 		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
 		result_color += ambient_occlusion(dir, 0);
+		depth_sum += depth_buffer[frame][x][y].y;
 	}
 
 	// anti-aliasing
@@ -316,20 +324,22 @@ void main()
 				random(seed4 * xy - seed3 * xy * seed2))) / 6 - vec2(0.08333);
 		
 		// ray direction calculation
-		float hp = (float(xy.x) + randy.x) / WIDTH;
-		float vp = (float(xy.y) + randy.y) / HEIGHT;
+		float hp = (float(x) + randy.x) / WIDTH;
+		float vp = (float(y) + randy.y) / HEIGHT;
 		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
 		result_color += ambient_occlusion(dir, aa);
+		depth_sum += depth_buffer[frame][x][y].y;
 	}
 
 	result_color /= AA;
+	depth_buffer[frame][x][y] /= AA;
 
 	// gamma correction
 	float gamma = 1/2.2;
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 	// write image
-	pixels[int(mode.y)][xy.x][xy.y] = result_color;
+	pixels[frame][x][y] = result_color;
 	return;
 }

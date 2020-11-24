@@ -67,12 +67,14 @@ void main()
 	if (new_normal.w > 0.99) // if it is not a background pixel
 	{
 		float new_depth = depth_buffer[new_frame][x][y].x;
+		float new_bounces = depth_buffer[new_frame][x][y].y;
 
 		// spatial
 		vec4 left,right,up,down;
 		float l,r,u,d;
 		vec3 l_normal, r_normal, u_normal, d_normal;
 		float l_depth, r_depth, u_depth, d_depth;
+		float l_bounces, r_bounces, u_bounces, d_bounces;
 
 		// vec4 upleft,upright,downleft,downright
 
@@ -80,12 +82,19 @@ void main()
 		{
 			right = pixels[new_frame][x + 1][y];
 			r_normal = normals_buffer[new_frame][x + 1][y].xyz;
-			r_depth = depth_buffer[new_frame][x + 1][y].x;
+			if (normals_buffer[new_frame][x + 1][y].w < 0.001)
+				r = 1;
+			else
+			{
+				r_depth = depth_buffer[new_frame][x + 1][y].x;
+				r_bounces = depth_buffer[new_frame][x + 1][y].y;
 
-			float normal_dot = dot(new_normal.xyz, r_normal);
-			float depth_diff = (1 - clamp(abs(new_depth - r_depth), 0, 1));
-			// float mag = length(right);
-			r = normal_dot * depth_diff + 0.2;
+				float normal_dot = dot(new_normal.xyz, r_normal);
+				float depth_diff = (1 - clamp(abs(new_depth - r_depth), 0, 1));
+				float bounces_diff = (1 - clamp(abs(new_bounces - r_bounces) / 1.7, 0, 1));
+				// float mag = length(right);
+				r = normal_dot * depth_diff * bounces_diff + 0.2;
+			}
 		}
 		else
 		{
@@ -96,12 +105,19 @@ void main()
 		{
 			left = pixels[new_frame][x - 1][y];
 			l_normal = normals_buffer[new_frame][x - 1][y].xyz;
-			l_depth = depth_buffer[new_frame][x - 1][y].x;
+			if (normals_buffer[new_frame][x - 1][y].w < 0.001)
+				l = 1;
+			else
+			{
+				l_depth = depth_buffer[new_frame][x - 1][y].x;
+				l_bounces = depth_buffer[new_frame][x - 1][y].y;
 
-			float normal_dot = dot(new_normal.xyz, l_normal);
-			float depth_diff = (1 - clamp(abs(new_depth - l_depth), 0, 1));
-			// float mag = length(left);
-			l = normal_dot * depth_diff + 0.2;
+				float normal_dot = dot(new_normal.xyz, l_normal);
+				float depth_diff = (1 - clamp(abs(new_depth - l_depth), 0, 1));
+				float bounces_diff = (1 - clamp(abs(new_bounces - l_bounces) / 1.7, 0, 1));
+				// float mag = length(left);
+				l = normal_dot * depth_diff * bounces_diff + 0.2;
+			}
 		}
 		else
 		{
@@ -112,12 +128,19 @@ void main()
 		{
 			up = pixels[new_frame][x][y + 1];
 			u_normal = normals_buffer[new_frame][x][y + 1].xyz;
-			u_depth = depth_buffer[new_frame][x][y + 1].x;
+			if (normals_buffer[new_frame][x][y + 1].w < 0.001)
+				u = 1;
+			else
+			{
+				u_depth = depth_buffer[new_frame][x][y + 1].x;
+				u_bounces = depth_buffer[new_frame][x][y + 1].y;
 
-			float normal_dot = dot(new_normal.xyz, u_normal);
-			float depth_diff = (1 - clamp(abs(new_depth - u_depth), 0, 1));
-			// float mag = length(up);
-			u = normal_dot * depth_diff + 0.2;
+				float normal_dot = dot(new_normal.xyz, u_normal);
+				float depth_diff = (1 - clamp(abs(new_depth - u_depth), 0, 1));
+				float bounces_diff = (1 - clamp(abs(new_bounces - u_bounces) / 1.7, 0, 1));
+				// float mag = length(up);
+				u = normal_dot * depth_diff * bounces_diff + 0.2;
+			}
 		}
 		else
 		{
@@ -128,12 +151,19 @@ void main()
 		{
 			down = pixels[new_frame][x][y - 1];
 			d_normal = normals_buffer[new_frame][x][y - 1].xyz;
-			d_depth = depth_buffer[new_frame][x][y - 1].x;
+			if (normals_buffer[new_frame][x][y - 1].w < 0.001)
+				d = 1;
+			else
+			{
+				d_depth = depth_buffer[new_frame][x][y - 1].x;
+				d_bounces = depth_buffer[new_frame][x][y - 1].y;
 
-			float normal_dot = dot(new_normal.xyz, d_normal);
-			float depth_diff = (1 - clamp(abs(new_depth - d_depth), 0, 1));
-			// float mag = length(down);
-			d = normal_dot * depth_diff + 0.2;
+				float normal_dot = dot(new_normal.xyz, d_normal);
+				float depth_diff = (1 - clamp(abs(new_depth - d_depth), 0, 1));
+				float bounces_diff = (1 - clamp(abs(new_bounces - d_bounces) / 1.7, 0, 1));
+				// float mag = length(down);
+				d = normal_dot * depth_diff * bounces_diff + 0.2;
+			}
 		}
 		else
 		{
@@ -151,11 +181,13 @@ void main()
 			int curr_frame = (new_frame + NUM_FRAMES - i) % NUM_FRAMES;
 			vec3 curr_normal = normals_buffer[curr_frame][x][y].xyz;
 			float curr_depth = depth_buffer[curr_frame][x][y].x;
+			float curr_bounces = depth_buffer[curr_frame][x][y].y;
 
 			float normal_dot = dot(new_normal.xyz, curr_normal);
 			float depth_diff = (1 - clamp(abs(new_depth - curr_depth), 0, 1));
+			float bounces_diff = (1 - clamp(abs(new_bounces - curr_bounces) / 1.7, 0, 1));
 
-			float coeff = normal_dot * depth_diff;
+			float coeff = normal_dot * depth_diff * bounces_diff;
 
 			if (coeff > 0.85)
 			{

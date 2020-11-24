@@ -18,11 +18,13 @@ final project for csc 572, graduate graphics
 ### Key Features:
 * Compute Shaders
 * OpenGL
+* Keyboard input
 * Ray traced ambient occlusion
 * Real time reflections
 * Realistic shadowing
 * Multisample Anti Aliasing
-* Post processing phase that applies Temporal Anti-Aliasing and Spatial Anti-Aliasing
+* Temporal Anti-Aliasing
+* Spatial Anti-Aliasing
 
 ### How it works:
 1. The CPU side prepares the scene and initializes everything
@@ -31,9 +33,12 @@ final project for csc 572, graduate graphics
 
 ### Notes:
 * This project is incomplete. There are plans to add the following...
+	+ Denoising based on number of recursive bounces
+	+ Using textures to store past frames instead of frame buffers
+	+ smoothing edges
+* Some ideas that may or may not come to fruition:
 	+ Scene object movements/animations
 	+ Triangles, Rectangles, and other more complicated objects
-* Some ideas that may or may not come to fruition:
 	+ Importance Sampling to get better mileage out of ray calculations
 	+ Bounding Volume Hierarchy once many objects are in each scene
 	+ Obj files
