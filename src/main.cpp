@@ -821,18 +821,18 @@ public:
 		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-		//GLuint block_index2;
-		//block_index2 = 0;
-		//block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		//GLuint ssbo_binding_point_index2 = 0;
-		//glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index2);
-		//glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		//glUseProgram(postProcessingProgram);
+		GLuint block_index2;
+		block_index2 = 0;
+		block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index2 = 0;
+		glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index2);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glUseProgram(postProcessingProgram);
 
-		//glDispatchCompute((GLuint)WIDTH, (GLuint)HEIGHT, 1);		//start compute shader
-		//glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glDispatchCompute((GLuint)WIDTH, (GLuint)HEIGHT, 1);		//start compute shader
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-  //      glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 		
