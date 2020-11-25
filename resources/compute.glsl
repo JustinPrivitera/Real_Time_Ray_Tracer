@@ -334,5 +334,5 @@ void main()
 
 	// write image
 	pixels[x][y] = result_color;
-	return;
+	pixels[x][y] = vec4(float(x)/500.0f, float(y)/500.f,0,0);
 }

@@ -1,6 +1,7 @@
 #version 460 
 #extension GL_ARB_shader_storage_buffer_object : require
-// #extension GL_ARB_compute_shader : enable
+#extension GL_ARB_compute_shader : enable
+#extension GL_ARB_array_of_arrays : enable
 
 
 #define WIDTH 440
@@ -60,6 +61,8 @@ void main()
 	int new_frame = int(mode.y);
 
 	vec4 color = pixels[x][y];
+
+	//color += vec4(float(y) /500.0f, float(x)/500.0f,0,0);
 	
 	// write image
 	imageStore(img_output, ivec2(x,y), color);
