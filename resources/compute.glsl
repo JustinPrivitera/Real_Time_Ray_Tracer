@@ -21,7 +21,7 @@ layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D img_output;									//output image
 
-layout (std430, binding = 0) volatile buffer shader_data
+layout (std430, binding = 1) volatile buffer shader_data
 {
 	vec4 mode;
 	// TODO add lighting mode and maybe some other selections
@@ -536,16 +536,13 @@ void main()
 	// ray direction calculation
 	float hp = float(pixel_coords.x) / WIDTH;
 	float vp = float(pixel_coords.y) / HEIGHT;
-	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+	vec3 dir = llc_minus_campos.xyz ;
+
+	mode.x =(1);
 
 	// get color based on chosen lighting algorithm
 	
-	if (mode.x == 1)
-		result_color = phong(dir);
-	else if (mode.x == 2)
-		result_color = foggy(dir);
-	else
-		result_color = hybrid(dir);
+		result_color = vec4(dir, 0);
 
 	// gamma correction
 	float gamma = 1/2.2;
@@ -554,7 +551,9 @@ void main()
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 
+
 	// write image
 	imageStore(img_output, pixel_coords, result_color);
 	return;
 }
+

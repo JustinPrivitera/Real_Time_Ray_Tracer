@@ -485,6 +485,7 @@ public:
             // (3)
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
             glBindVertexArray(0);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
 
             int width, height, channels;
             char filepath[1000];
@@ -589,7 +590,7 @@ public:
 		glGenBuffers(1, &ssbo_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(ssbo_data), &ssbo_CPUMEM, GL_DYNAMIC_COPY);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 	}
 
@@ -661,11 +662,11 @@ public:
 		ssbo_CPUMEM.rand_buffer[0] = vec4(randf(), randf(), randf(), randf());
 		ssbo_CPUMEM.rand_buffer[1] = vec4(randf(), randf(), randf(), randf());
 
-		GLuint block_index = 1;
+		GLuint block_index = 0;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo_GPU_id);
 		glUseProgram(computeProgram);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);

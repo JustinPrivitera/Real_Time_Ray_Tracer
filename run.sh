@@ -6,6 +6,6 @@ mkdir build
 cd build
 cmake ..
 make -j8
-./lab3
+timeout -s SIGKILL 10 ./lab3
 cd ../
 
