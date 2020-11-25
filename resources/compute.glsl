@@ -536,13 +536,16 @@ void main()
 	// ray direction calculation
 	float hp = float(pixel_coords.x) / WIDTH;
 	float vp = float(pixel_coords.y) / HEIGHT;
-	vec3 dir = llc_minus_campos.xyz ;
-
-	mode.x =(1);
+	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
 	// get color based on chosen lighting algorithm
 	
-		result_color = vec4(dir, 0);
+	if (mode.x == 1)
+		result_color = phong(dir);
+	else if (mode.x == 2)
+		result_color = foggy(dir);
+	else
+		result_color = hybrid(dir);
 
 	// gamma correction
 	float gamma = 1/2.2;
@@ -551,9 +554,7 @@ void main()
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 
-
 	// write image
 	imageStore(img_output, pixel_coords, result_color);
 	return;
 }
-
