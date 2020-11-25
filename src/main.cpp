@@ -580,6 +580,7 @@ public:
             // (3)
             glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
             glBindVertexArray(0);
+          glBindBuffer(GL_ARRAY_BUFFER, 0);
 
             int width, height;
 
@@ -762,7 +763,7 @@ public:
 		glUseProgram(computeProgram);
 
 		
-		GLuint block_index;
+		GLuint block_index = 0;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
@@ -790,7 +791,7 @@ public:
 		glLinkProgram(postProcessingProgram);
 		glUseProgram(postProcessingProgram);
 
-		GLuint block_index2;
+		GLuint block_index2 = 0;
 		block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index);
@@ -813,7 +814,7 @@ public:
 			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
 		}
 
-		GLuint block_index = 1;
+		GLuint block_index = 0;
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
@@ -830,7 +831,7 @@ public:
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
 		GLuint block_index2;
-		block_index2 = 1;
+		block_index2 = 0;
 		block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index2 = 0;
 		glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index2);

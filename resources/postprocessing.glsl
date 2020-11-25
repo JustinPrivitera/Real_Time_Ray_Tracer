@@ -16,7 +16,7 @@ layout(local_size_x = 1, local_size_y = 1) in;
 
 layout(rgba32f, binding = 0) uniform image2D img_output;
 
-layout(std430, binding = 0) volatile buffer shader_data
+layout(std430, binding = 1) volatile buffer shader_data
 {
 	vec4 mode; // utility
 	vec4 horizontal; // ray casting vector
