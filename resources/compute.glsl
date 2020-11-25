@@ -288,51 +288,51 @@ void main()
 	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 	uint x = xy.x;
 	uint y = xy.y;
-	int frame = int(mode.y);
-	float depth_sum = 0;
+	// int frame = int(mode.y);
+	// float depth_sum = 0;
 
-	vec4 result_color = vec4(0);
+	// vec4 result_color = vec4(0);
 
-	vec2 randy;
+	// vec2 randy;
 
-	{
-		// ray direction calculation
-		float hp = float(x) / WIDTH;
-		float vp = float(y) / HEIGHT;
-		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+	// {
+	// 	// ray direction calculation
+	// 	float hp = float(x) / WIDTH;
+	// 	float vp = float(y) / HEIGHT;
+	// 	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
-		result_color += ambient_occlusion(dir, 0);
-	}
+	// 	result_color += ambient_occlusion(dir, 0);
+	// }
 
-	// anti-aliasing
-	for (int aa = 1; aa < AA; aa ++)
-	{
-		int first = aa * 2;
-		int second = first + 1;
-		vec2 seed1 = vec2(rand_buffer[second].x, rand_buffer[first].y);
-		vec2 seed2 = vec2(rand_buffer[first].z, rand_buffer[second].w);
-		vec2 seed3 = vec2(rand_buffer[first].x, rand_buffer[second].y);
-		vec2 seed4 = vec2(rand_buffer[second].z, rand_buffer[first].w);
+	// // anti-aliasing
+	// for (int aa = 1; aa < AA; aa ++)
+	// {
+	// 	int first = aa * 2;
+	// 	int second = first + 1;
+	// 	vec2 seed1 = vec2(rand_buffer[second].x, rand_buffer[first].y);
+	// 	vec2 seed2 = vec2(rand_buffer[first].z, rand_buffer[second].w);
+	// 	vec2 seed3 = vec2(rand_buffer[first].x, rand_buffer[second].y);
+	// 	vec2 seed4 = vec2(rand_buffer[second].z, rand_buffer[first].w);
 
-		randy = normalize(vec2(
-				random(seed1 + xy * seed2 - xy + seed3), 
-				random(seed4 * xy - seed3 * xy * seed2))) / 6 - vec2(0.08333);
+	// 	randy = normalize(vec2(
+	// 			random(seed1 + xy * seed2 - xy + seed3), 
+	// 			random(seed4 * xy - seed3 * xy * seed2))) / 6 - vec2(0.08333);
 		
-		// ray direction calculation
-		float hp = (float(x) + randy.x) / WIDTH;
-		float vp = (float(y) + randy.y) / HEIGHT;
-		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+	// 	// ray direction calculation
+	// 	float hp = (float(x) + randy.x) / WIDTH;
+	// 	float vp = (float(y) + randy.y) / HEIGHT;
+	// 	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
-		result_color += ambient_occlusion(dir, aa);
-	}
+	// 	result_color += ambient_occlusion(dir, aa);
+	// }
 
-	result_color /= AA;
+	// result_color /= AA;
 
-	// gamma correction
-	float gamma = 1/2.2;
-	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
+	// // gamma correction
+	// float gamma = 1/2.2;
+	// result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
-	// write image
-	pixels[x][y] = result_color;
-	pixels[x][y] = vec4(float(x)/500.0f, float(y)/500.f,0,0);
+	// // write image
+	// pixels[x][y] = result_color;
+	pixels[x][y] += vec4(0,float(y)/400.0f,0,1); 
 }

@@ -739,7 +739,7 @@ public:
 		glGenBuffers(1, &owie_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, owie_GPU_id);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(OWIE), &owiemem, GL_DYNAMIC_COPY);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, owie_GPU_id);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, owie_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0); // unbind
 	}
 
@@ -830,10 +830,14 @@ public:
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		GLuint ssbo_binding_point_index = 0;
+		GLuint ssbo_binding_point_index = 2;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo_GPU_id);
 		glUseProgram(computeProgram);
+
+		for(int i = 0; i < WIDTH; i++)
+		for(int j = 0; j < HEIGHT; j++)
+		ssbo_CPUMEM.pixels[i][j] = vec4(((float)i) / 400.0f, 0,0,0);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
@@ -852,9 +856,6 @@ public:
 
 		memcpy(owiemem.pixels , ssbo_CPUMEM.pixels , sizeof(owiemem.pixels));
 
-		for(int i = 0; i < WIDTH; i++)
-		for(int j = 0; j < HEIGHT; j++)
-		owiemem.pixels[i][j] = vec4(randf());
 
 		GLuint block_index2;
 		block_index2 = 0;
