@@ -1,6 +1,7 @@
 #version 460 
 #extension GL_ARB_shader_storage_buffer_object : require
-// #extension GL_ARB_compute_shader : enable
+#extension GL_ARB_compute_shader : enable
+#extension GL_ARB_arrays_of_arrays : enable
 
 #define WIDTH 440
 #define HEIGHT 330
@@ -50,9 +51,8 @@ layout (std430, binding = 1) volatile buffer shader_data
 	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
 
 	// g buffer
-	vec4 pixels[NUM_FRAMES][WIDTH][HEIGHT];
-	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
-	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
+	vec4 pixels[WIDTH][HEIGHT];
+
 };
 
 uniform int sizeofbuffer;
@@ -174,7 +174,6 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 		uint x = gl_GlobalInvocationID.x;
 		uint y = gl_GlobalInvocationID.y;
 		int frame = int(mode.y);
-		depth_buffer[frame][x][y].y = RECURSION_DEPTH;
 		return;
 	}
 
@@ -210,7 +209,6 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 			uint x = gl_GlobalInvocationID.x;
 			uint y = gl_GlobalInvocationID.y;
 			int frame = int(mode.y);
-			depth_buffer[frame][x][y].y = RECURSION_DEPTH - depth;
 			return;
 		}
 
@@ -231,8 +229,6 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 			uint x = gl_GlobalInvocationID.x;
 			uint y = gl_GlobalInvocationID.y;
 			int frame = int(mode.y);
-			normals_buffer[frame][x][y] = vec4(normal, 1);
-			depth_buffer[frame][x][y] = vec4(t, 0, 0, 1);
 		}
 
 		array[0] = attenuation;
@@ -255,14 +251,12 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 		int frame = int(mode.y);
 		if (aa < 0.001 && depth == RECURSION_DEPTH)
 		{
-			normals_buffer[frame][x][y] = vec4(0);
-			depth_buffer[frame][x][y] = vec4(0);
+			
 		}
 
 		array[0] = background;
 		array[1].w = 1; // this means stop the recursion
 
-		depth_buffer[frame][x][y].y = RECURSION_DEPTH - depth;
 		return;
 	}
 }
@@ -308,7 +302,6 @@ void main()
 		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
 		result_color += ambient_occlusion(dir, 0);
-		depth_sum += depth_buffer[frame][x][y].y;
 	}
 
 	// anti-aliasing
@@ -331,17 +324,15 @@ void main()
 		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
 		result_color += ambient_occlusion(dir, aa);
-		depth_sum += depth_buffer[frame][x][y].y;
 	}
 
 	result_color /= AA;
-	depth_buffer[frame][x][y] /= AA;
 
 	// gamma correction
 	float gamma = 1/2.2;
 	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 	// write image
-	pixels[frame][x][y] = result_color;
+	pixels[x][y] = result_color;
 	return;
 }
