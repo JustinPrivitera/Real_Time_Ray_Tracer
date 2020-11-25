@@ -282,7 +282,7 @@ vec4 ambient_occlusion(vec3 dir, int aa)
 	{
 		ambient_occlusion_helper(ambient_occlusion_buffer, i, aa);
 		result_color = result_color * ambient_occlusion_buffer[0];
-		if (ambient_occlusion_buffer[1].w == 1) // the stop bit was set
+		if (int(ambient_occlusion_buffer[1].w) == 1) // the stop bit was set
 			break;
 		i -= 1;
 	}
