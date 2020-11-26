@@ -51,12 +51,6 @@ class ssbo_data
 {
 public:
 	vec4 mode; // utility
-	vec4 horizontal; // ray casting vector
-	vec4 vertical; // ray casting vector
-	vec4 llc_minus_campos; // ray casting vector
-	vec4 camera_location; // ray casting vector
-	vec4 background; // represents the background color
-	vec4 simple_shapes[NUM_SHAPES][5]; // shape buffer
 	// sphere:
 		// vec4: vec3 center, float radius
 		// vec4: vec3 nothing, bool emissive?
@@ -75,10 +69,6 @@ public:
 		// vec4: vec3 right, float nothing
 		// vec4: vec3 lower left corner, float reflectivity
 		// vec4: vec3 color, int shape_id
-
-	vec4 rand_buffer[AA * 2]; // stores random numbers needed for ray bounces
-
-
 	vec4 pixels[WIDTH][HEIGHT];
 
 };
@@ -486,7 +476,6 @@ public:
 			mycam.two = 0;
 			mycam.three = 0;
 			// ssbo_CPUMEM.background = vec4(1);
-			ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 			true_num_scene_objects = 5;
 			myscene = scene1;
 		}
@@ -497,7 +486,6 @@ public:
 			mycam.one = 0;
 			mycam.two = 1;
 			mycam.three = 0;
-			ssbo_CPUMEM.background = vec4(0);
 			true_num_scene_objects = 3;
 			myscene = scene5;
 		}
@@ -508,7 +496,6 @@ public:
 			mycam.one = 0;
 			mycam.two = 0;
 			mycam.three = 1;
-			ssbo_CPUMEM.background = vec4(0);
 			true_num_scene_objects = 6;
 			myscene = scene6;
 		}
@@ -653,10 +640,6 @@ public:
     				// vec4: vec3 nothing, float reflectivity
     				// vec4: vec3 color, int shape_id
 
-    			ssbo_CPUMEM.simple_shapes[i][0] = vec4(center, rad);
-    			ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
-    			ssbo_CPUMEM.simple_shapes[i][3].w = reflectivity;
-    			ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
     		}
     		if (curr->id() == PLANE_ID)
     		{
@@ -675,10 +658,6 @@ public:
     				// vec4: vec3 point in plane, float reflectivity
     				// vec4: vec3 color, int shape_id
 
-    			ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, dist_from_orig);
-    			ssbo_CPUMEM.simple_shapes[i][1].w = emissive;
-    			ssbo_CPUMEM.simple_shapes[i][3] = vec4(p0, reflectivity);
-    			ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
     		}
 			if (curr->id() == RECTANGLE_ID)
 			{
@@ -698,11 +677,6 @@ public:
 					// 	vec4: vec3 lower left corner, float reflectivity
 					// 	vec4: vec3 color, int shape_id
 
-				ssbo_CPUMEM.simple_shapes[i][0] = vec4(normal, 0);
-				ssbo_CPUMEM.simple_shapes[i][1] = vec4(up, emissive);
-				ssbo_CPUMEM.simple_shapes[i][2] = vec4(right, 0);
-				ssbo_CPUMEM.simple_shapes[i][3] = vec4(llc, reflectivity);
-				ssbo_CPUMEM.simple_shapes[i][4] = vec4(color, id);
 			}
 		}
 	}
@@ -714,20 +688,12 @@ public:
 		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
 
 		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
-		ssbo_CPUMEM.mode = vec4(1,0,0,0);
-		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
-		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
-		// maybe there is a better place to store these important default values...
-		// instead of buried in computeInitGeom
-		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
-		// ssbo_CPUMEM.background = vec4(0);
 
 
 		loadShapeBuffer();
 
 		for (int i = 0; i < AA * 2; i ++)
 		{
-			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
 		}
 
 		glGenBuffers(1, &ssbo_GPU_id);
@@ -807,37 +773,28 @@ public:
 
 	void compute()
 	{
+		GLuint block_index = 0;
+		GLvoid* p ;
+		size_t siz;
 		static int frame_num = 0;
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.mode.y = frame_num;
 		ssbo_CPUMEM.mode.z = true_num_scene_objects;
-		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
-		ssbo_CPUMEM.vertical = vec4(vertical, 0);
-		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
-		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
 
 		for (int i = 0; i < AA * 2; i ++)
 		{
-			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
 		}
 
-		GLuint block_index = 0;
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-		int siz = sizeof(ssbo_data);
-		memcpy(&ssbo_CPUMEM,p, siz);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+		for(int i = 0; i < WIDTH; i++)
+		for(int j = 0; j < HEIGHT; j++)
+		ssbo_CPUMEM.pixels[i][j] = vec4(((float)i) / 400.0f, 0,0,0);
 
 		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
 		glUseProgram(computeProgram);
-
-		for(int i = 0; i < WIDTH; i++)
-		for(int j = 0; j < HEIGHT; j++)
-		ssbo_CPUMEM.pixels[i][j] = vec4(((float)i) / 400.0f, 0,0,0);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
@@ -855,7 +812,6 @@ public:
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 		memcpy(owiemem.pixels , ssbo_CPUMEM.pixels , sizeof(owiemem.pixels));
-
 
 		GLuint block_index2;
 		block_index2 = 0;
