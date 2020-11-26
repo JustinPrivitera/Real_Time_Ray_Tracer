@@ -20,7 +20,7 @@
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
-layout (std430, binding = 2) volatile buffer shader_data
+layout (std430, binding = 0) volatile buffer shader_data
 {
 	vec4 mode; // utility
 	vec4 horizontal; // ray casting vector
@@ -330,8 +330,8 @@ void main()
 	// result_color /= AA;
 
 	// // gamma correction
-	// float gamma = 1/2.2;
-	// result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
+	float gamma = 1/2.2;
+	result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 	// // write image
 	pixels[x][y] = result_color;
