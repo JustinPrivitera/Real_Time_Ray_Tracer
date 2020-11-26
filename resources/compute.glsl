@@ -280,6 +280,7 @@ vec4 ambient_occlusion(vec3 dir, int aa)
 			break;
 		i -= 1;
 	}
+
 	return result_color;
 }
 
@@ -288,21 +289,21 @@ void main()
 	ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 	uint x = xy.x;
 	uint y = xy.y;
-	// int frame = int(mode.y);
-	// float depth_sum = 0;
+	int frame = int(mode.y);
+	float depth_sum = 0;
 
-	// vec4 result_color = vec4(0);
+	vec4 result_color = vec4(0);
 
-	// vec2 randy;
+	vec2 randy;
 
-	// {
-	// 	// ray direction calculation
-	// 	float hp = float(x) / WIDTH;
-	// 	float vp = float(y) / HEIGHT;
-	// 	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+	{
+		// ray direction calculation
+		float hp = float(x) / WIDTH;
+		float vp = float(y) / HEIGHT;
+		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
-	// 	result_color += ambient_occlusion(dir, 0);
-	// }
+		result_color += ambient_occlusion(dir, 0);
+	}
 
 	// // anti-aliasing
 	// for (int aa = 1; aa < AA; aa ++)
@@ -333,6 +334,7 @@ void main()
 	// result_color = vec4(pow(result_color.r, gamma), pow(result_color.g, gamma), pow(result_color.b, gamma), 0);
 
 	// // write image
-	// pixels[x][y] = result_color;
-	pixels[x][y] += vec4(0,float(y)/400.0f,0,1); 
+	pixels[x][y] = result_color;
+
+	// pixels[x][y] += vec4(0,float(y)/400.0f,0,1); 
 }
