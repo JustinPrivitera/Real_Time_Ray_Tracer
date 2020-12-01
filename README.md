@@ -1,5 +1,5 @@
 # final_project_csc572
-final project for csc 572, graduate graphics
+final project for csc 572, graduate graphics and csc 473, advanced rendering techniques
 
 ## Real Time Ray Tracer using Compute Shaders and OpenGL
 
@@ -8,6 +8,12 @@ final project for csc 572, graduate graphics
 ![screenshot2](images/screenshot2.png)
 
 ![screenshot3](images/screenshot3.png)
+
+![phong](images/phong.png)
+
+![phong+reflections](images/phong+reflections.png)
+
+![ambient_occlusion+pp](images/ambient_occlusion+pp.png)
 
 ### Controls:
 * use WASD, space, and left shift to move
