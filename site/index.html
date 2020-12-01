@@ -1,206 +1,81 @@
-<!-- saved from url=(0071)http://mixedrealitylab.io/project_websites/GabriellaSantiago/index.html -->
-<html>
-
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <title>Justin Privitera, Noah Stapp, Kevin Kellar - Real-time Ray Tracing</title>
-
-  <link href="./resources/index.css" rel="stylesheet" type="text/css">
-
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      background: white;
-      color: #333333;
-      -webkit-font-smoothing: antialiased;
-      font-size: 16px;
-      font-family: "Source Sans Pro", Helvetica;
-    }
-
-    img {
-      display: block;
-    }
-
-    em {
-      font-size: 12px;
-    }
-
-    #signature {
-      margin-left: 30px;
-      font-style: oblique;
-    }
-
-    a:link,
-    a:visited {
-      color: #165788;
-      text-decoration: none;
-    }
-
-    a:hover,
-    a:focus,
-    a:active {
-      text-decoration: underline;
-    }
-
-    .wrapper {
-      width: 660px;
-      margin: auto;
-    }
-
-    .container {
-      width: 660px;
-      margin: auto;
-    }
-
-    #content {
-      width: 650px;
-      margin: 70px auto 0px auto;
-    }
-
-    #content article {
-      margin-bottom: 150px;
-    }
-
-    #content h1,
-    #content h2 {
-      color: black;
-      margin-bottom: 30px;
-      font-weight: 200;
-      font-size: 48px;
-    }
-
-    #content h3 {
-      color: black;
-      border-bottom: 1px solid black;
-      text-transform: uppercase;
-      margin: 30px 0px 30px 0px;
-      font-size: 28px;
-      font-weight: 200;
-    }
-
-    #content p {
-      width: 100%;
-      line-height: 150%;
-      margin-bottom: 20px;
-    }
-
-    #content p:first-child {
-      font-size: 18px;
-      font-style: italic;
-      letter-spacing: 2px;
-    }
-
-    #content p:first-child:first-line {
-      font-weight: bold;
-    }
-
-    #content ul {
-      padding-left: 25px
-    }
-
-    pre {
-      font-size: 10px;
-      padding: 15px;
-      border-radius: 10px;
-      background: #ddd;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="wrapper">
-    <section id="content">
-
-      <h1>Real-time Ray Tracing</h1>
-
-      <h4>Justin Privitera, Noah Stapp, Kevin Kellar - CSC 572, Fall 2020 - Christian Eckhardt</h4>
-
-      <article>
-        <!-- This adds padding at the top and bottom -->
-
-        <h3>Project Description</h3>
-
-        <p>For our CSC 572 final project, we created a real-time ray tracer using OpenGL compute shaders. Ray tracing is
-          a rendering technique that uses simulated light rays and their bouncing to realistically render scenes. Done
-          in real-time, ray tracing produces realistic-looking scenes at the cost of framerate. </p>
-
-        <p>Technical topics used include:
-        </p>
-        <ul>
-          <li>Compute shaders</li>
-          <li>Post-processing</li>
-          <li>Keyboard input</li>
-          <li>Texture generation + rendering</li>
-          <li>Lightning techniques/modes</li>
-        </ul>
-        <p></p>
-
-        <!-- A Centered image-->
-        <center>
-          <a>
-            <img src="./resources/multisources.png" width="100%">
-          </a>
-          <em>Screenshot of finished project.</em>
-        </center>
-
-
-        <h3>Key features</h3>
-        <p>Our ray tracer implements several commonly-used rendering techniques to improve scene quality. The first, ray
-          traced ambient occlusion, calculates how exposed each pixel in a scene is to the ambient lighting, making some
-          pixels darker and more shadowed than others. We also implement real-time reflections and realistic shadows,
-          which hugely improve visual fidelity and are far more complex to implement using traditional, non-ray traced
-          methods. For post-processing, we implement a blend of three forms of anti-aliasing: multisample, temporal, and
-          spatial. Each of these helps de-noise the scene: without them many pixels are extremely noisy, giving the
-          scene an extremely pixelated and low-quality look, especially when moving the camera. When combined, these
-          techniques significantly reduce framerate, due to anti-aliasing being computationally expensive for real-time
-          3D graphics. However, the improvement in visual quality for more complex lightning like ambient occlusion
-          makes the performance impact well worth it.</p>
-        <center>
-          <a>
-            <img src="./resources/twospheres.png" width="100%">
-          </a>
-          <em>An example of ambient occlusion with realistic shadowing.</em>
-        </center>
-
-        <h3>High-level architecture</h3>
-        <p>Our project has four core steps in its execution. First, the scene is prepared, with the various light
-          sources and objects being converted from .obj files to arrays of points in preparation for rendering. Then,
-          the ray tracing stage occurs, calling a compute shader invocation on each pixel in the scene. This stage
-          creates rays, intersects them with scene geometry, and simulates the rays bouncing realistically between
-          objects and light sources. It outputs the computed color, normal, and depth value for each pixel into a 2D
-          texture for storage. The post-processing phase, run on a seperate compute shader, performs anti-aliasing on
-          each pixel in the ray traced texture. This post-processing blends pixels from previous frames for each pixel
-          of the current frame, producing a smoother image. The final result of this stage is written back into the same
-          2D texture. Finally, the last phase simply renders the 2D texture output from the post-processing phase onto a
-          2D rectangle, producing the final scene as a 3D image.
-        </p>
-        <center>
-          <a>
-            <img src="./resources/onesource.png" width="100%">
-          </a>
-          <em>A single light source casts realistic shadows and reflections.</em>
-        </center>
-
-        <h3>Functionality</h3>
-        <ul>
-          <li>Use W A S D, space, and left shift to move the camera around the scene. t</li>
-          <li>Use QEZC to rotate the camera around its current position.</li>
-          <li>Use F to toggle the aspect ratio between 4:3 and 16:9.</li>
-          <li>Use 1, 2, and 3 to toggle between different scenes.</li>
-        </ul>
-        </center>
-
-        <h3>Download</h3>
-        <a href="./resources/realtimeraytracing.zip" download="realtimeraytracing">Download project</a>
-      <h3>Video</h3>
-        <a href="./resources/zoom_0.mp4" download="video.mp4">Watch video</a>
-      </article>
-    </section>
-  </div>
-</body>
-
-</html>
+<h1 id="Real Time Ray Tracer">Real Time Ray Tracer</h1>
+<p>final project for csc 572, graduate graphics and csc 473, advanced rendering techniques</p>
+<p>Kevin Kellar, Noah Stapp, Justin Privitera</p>
+<h2 id="real-time-ray-tracer-using-compute-shaders-and-opengl">Real Time Ray Tracer using Compute Shaders and OpenGL</h2>
+<center>
+  <a>
+    <img src="./resources/screenshot1.png" width="100%">
+  </a>
+</center>
+<center>
+  <a>
+    <img src="./resources/phong.png" width="100%">
+  </a>
+</center>
+<center>
+  <a>
+    <img src="./resources/phong+reflections.png" width="100%">
+  </a>
+</center>
+<center>
+  <a>
+    <img src="./resources/ambient_occlusion+pp.png" width="100%">
+  </a>
+</center>
+<h3 id="instructions-to-run-">Instructions to run:</h3>
+<ul>
+<li>Requires OpenGL, GLFW, NVIDIA GPU to use Compute Shaders</li>
+<li>Includes visual studio or cmake build tools. There is a run script that builds and runs using cmake.</li>
+</ul>
+<h3 id="controls-">Controls:</h3>
+<ul>
+<li>use WASD, space, and left shift to move</li>
+<li>QEZC to rotate</li>
+<li>F to toggle aspect ratio</li>
+<li>V to toggle the scene</li>
+<li>L to toggle light movement</li>
+<li>1, 2, 3, and 4 to toggle the lighting algorithm</li>
+</ul>
+<h3 id="key-features-">Key Features:</h3>
+<ul>
+<li>Compute Shaders</li>
+<li>OpenGL</li>
+<li>Keyboard input</li>
+<li>Choice of multiple lighting algorithms, including:<ul>
+<li>Ray traced ambient occlusion with post processing (selection 1)</li>
+<li>Ray traced ambient occlusion (selection 2)</li>
+<li>Phong Diffuse Lighting (selection 3)</li>
+<li>Phong Diffuse Lighting with ray traced real time reflections (selection 4)</li>
+</ul>
+</li>
+<li>Real time reflections</li>
+<li>Realistic shadowing</li>
+<li>Moving light source for phong diffuse</li>
+<li>Multisample Anti Aliasing</li>
+<li>Temporal Anti-Aliasing</li>
+<li>Spatial Anti-Aliasing</li>
+</ul>
+<h3 id="how-it-works-">How it works:</h3>
+<ol>
+<li>The CPU side prepares the scene and initializes everything</li>
+<li>The first compute shader stage creates rays, intersects them with geometry, and bounces depending on the surface. It saves computed colors for each pixel, as well as normals and depth.</li>
+<li>If ambient occlusion with post processing is enabled, then the post-processing compute shader blends pixels with the last several frames using Temporal and Spatial AA.</li>
+</ol>
+<h3 id="notes-">Notes:</h3>
+<ul>
+<li>Future ideas to expand on this include:<ul>
+<li>smoothing edges</li>
+<li>Using textures to store past frames instead of frame buffers</li>
+<li>Scene object movements/animations</li>
+<li>Triangles, Rectangles, and other more complicated objects</li>
+<li>Importance Sampling to get better mileage out of ray calculations</li>
+<li>Bounding Volume Hierarchy once many objects are in each scene</li>
+<li>Obj files</li>
+</ul>
+</li>
+<li>Additionally, the following things need to be tweaked or worked on...<ul>
+<li>Post-processing</li>
+<li>Selective copying back from the GPU once shaders are done</li>
+</ul>
+</li>
+</ul>
