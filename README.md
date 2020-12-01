@@ -38,9 +38,7 @@ final project for csc 572, graduate graphics
 3. If ambient occlusion with post processing is enabled, then the post-processing compute shader blends pixels with the last several frames using Temporal and Spatial AA.
 
 ### Notes:
-* This project is incomplete. There are plans to add the following...
-	+ adding additional lighting algorithms in separate shaders
-* Some ideas that may or may not come to fruition:
+* Future ideas to expand on this include:
 	+ smoothing edges
 	+ Using textures to store past frames instead of frame buffers
 	+ Scene object movements/animations
