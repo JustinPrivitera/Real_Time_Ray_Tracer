@@ -205,7 +205,7 @@ public:
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
-	GLuint aop_computeProgram, aop_postProcessingProgram, ao_computeProgram, p_computeProgram;
+	GLuint aop_computeProgram, aop_postProcessingProgram, ao_computeProgram, p_computeProgram, h_computeProgram;
 
 	// Our shader program
 	std::shared_ptr<Program> prog, heightshader;
@@ -769,6 +769,7 @@ public:
 	void computeInit()
 	{
 		GLSL::checkVersion();
+		GLuint block_index;
 		//load the compute shader
 		std::string ShaderString = readFileAsString("../resources/aop_compute.glsl");
 		const char *shader = ShaderString.c_str();
@@ -792,8 +793,6 @@ public:
 		glLinkProgram(aop_computeProgram);
 		glUseProgram(aop_computeProgram);
 
-		
-		GLuint block_index;
 		block_index = glGetProgramResourceIndex(aop_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(aop_computeProgram, block_index, ssbo_binding_point_index);
@@ -805,10 +804,9 @@ public:
 		glShaderSource(postProcessingShader, 1, &shader, nullptr);
 
 
-		GLint rcp;
 		CHECKED_GL_CALL(glCompileShader(postProcessingShader));
-		CHECKED_GL_CALL(glGetShaderiv(postProcessingShader, GL_COMPILE_STATUS, &rcp));
-		if (!rcp)	//error compiling the shader file
+		CHECKED_GL_CALL(glGetShaderiv(postProcessingShader, GL_COMPILE_STATUS, &rc));
+		if (!rc)	//error compiling the shader file
 		{
 			GLSL::printShaderInfoLog(postProcessingShader);
 			std::cout << "Error compiling post processing shader " << std::endl;
@@ -821,10 +819,9 @@ public:
 		glLinkProgram(aop_postProcessingProgram);
 		glUseProgram(aop_postProcessingProgram);
 
-		GLuint block_index2;
-		block_index2 = glGetProgramResourceIndex(aop_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(aop_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(aop_postProcessingProgram, block_index2, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(aop_postProcessingProgram, block_index, ssbo_binding_point_index);
 
 		///////////////////////AO w/o PP SHADER//////////////////////////
 
@@ -833,11 +830,9 @@ public:
 		GLuint raw_ao_shader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(raw_ao_shader, 1, &shader, nullptr);
 
-
-		GLint rcao;
 		CHECKED_GL_CALL(glCompileShader(raw_ao_shader));
-		CHECKED_GL_CALL(glGetShaderiv(raw_ao_shader, GL_COMPILE_STATUS, &rcao));
-		if (!rcao)	//error compiling the shader file
+		CHECKED_GL_CALL(glGetShaderiv(raw_ao_shader, GL_COMPILE_STATUS, &rc));
+		if (!rc)	//error compiling the shader file
 		{
 			GLSL::printShaderInfoLog(raw_ao_shader);
 			std::cout << "Error compiling raw ambient occlusion shader " << std::endl;
@@ -850,10 +845,9 @@ public:
 		glLinkProgram(ao_computeProgram);
 		glUseProgram(ao_computeProgram);
 
-		GLuint block_index3;
-		block_index3 = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(ao_computeProgram, block_index3, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(ao_computeProgram, block_index, ssbo_binding_point_index);
 
 		///////////////////////PHONG SHADER//////////////////////////
 
@@ -862,11 +856,9 @@ public:
 		GLuint phong_shader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(phong_shader, 1, &shader, nullptr);
 
-
-		GLint rcph;
 		CHECKED_GL_CALL(glCompileShader(phong_shader));
-		CHECKED_GL_CALL(glGetShaderiv(phong_shader, GL_COMPILE_STATUS, &rcph));
-		if (!rcph)	//error compiling the shader file
+		CHECKED_GL_CALL(glGetShaderiv(phong_shader, GL_COMPILE_STATUS, &rc));
+		if (!rc)	//error compiling the shader file
 		{
 			GLSL::printShaderInfoLog(phong_shader);
 			std::cout << "Error compiling phong shader " << std::endl;
@@ -879,10 +871,35 @@ public:
 		glLinkProgram(p_computeProgram);
 		glUseProgram(p_computeProgram);
 
-		GLuint block_index4;
-		block_index4 = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(p_computeProgram, block_index3, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(p_computeProgram, block_index, ssbo_binding_point_index);
+
+		///////////////////////HYBRID SHADER//////////////////////////
+
+		ShaderString = readFileAsString("../resources/h_compute.glsl");
+		shader = ShaderString.c_str();
+		GLuint hybrid_shader = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(hybrid_shader, 1, &shader, nullptr);
+
+		CHECKED_GL_CALL(glCompileShader(hybrid_shader));
+		CHECKED_GL_CALL(glGetShaderiv(hybrid_shader, GL_COMPILE_STATUS, &rc));
+		if (!rc)	//error compiling the shader file
+		{
+			GLSL::printShaderInfoLog(hybrid_shader);
+			std::cout << "Error compiling hybrid shader " << std::endl;
+			system("pause");
+			exit(1);
+		}
+
+		h_computeProgram = glCreateProgram();
+		glAttachShader(h_computeProgram, hybrid_shader);
+		glLinkProgram(h_computeProgram);
+		glUseProgram(h_computeProgram);
+
+		block_index = glGetProgramResourceIndex(h_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(h_computeProgram, block_index, ssbo_binding_point_index);
 	}
 
 	void compute()
@@ -894,8 +911,65 @@ public:
 			frame_num = compute_ambient_occlusion(frame_num);
 		else if (mycam.lighting == 3)
 			frame_num = compute_phong(frame_num);
+		else if (mycam.lighting == 4)
+			frame_num = compute_hybrid(frame_num);
 		else
 			cerr << "not yet implemented" << endl;
+	}
+
+	int compute_hybrid(int frame_num)
+	{
+		if (light_movement)
+		{
+			ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
+			if (ssbo_CPUMEM.light_pos.x > 50)
+				ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
+		}
+		else
+			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
+		// TODO use ssbo versions of data so no need to copy
+		// copy updated values over... in the future maybe just use the ssbo versions everywhere
+		ssbo_CPUMEM.mode.y = frame_num;
+		ssbo_CPUMEM.mode.z = true_num_scene_objects;
+		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
+		ssbo_CPUMEM.vertical = vec4(vertical, 0);
+		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
+		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
+
+		// for (int i = 0; i < AA * 2; i ++)
+		// {
+		// 	ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
+		// }
+
+		GLuint block_index = 1;
+		block_index = glGetProgramResourceIndex(h_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(h_computeProgram, block_index, ssbo_binding_point_index);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glUseProgram(h_computeProgram);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		int siz = sizeof(ssbo_data);
+		memcpy(p, &ssbo_CPUMEM, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);				
+
+		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+		
+		//copy data back to CPU MEM
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		siz = sizeof(ssbo_data);
+		memcpy(&ssbo_CPUMEM,p, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+		return (frame_num + 1) % NUM_FRAMES;
 	}
 
 	int compute_phong(int frame_num)
@@ -917,10 +991,10 @@ public:
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
 		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
 
-		for (int i = 0; i < AA * 2; i ++)
-		{
-			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
-		}
+		// for (int i = 0; i < AA * 2; i ++)
+		// {
+		// 	ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
+		// }
 
 		GLuint block_index = 1;
 		block_index = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
