@@ -11,6 +11,10 @@ final project for csc 572, graduate graphics and csc 473, advanced rendering tec
 
 ![ambient_occlusion+pp](images/ambient_occlusion+pp.png)
 
+### Instructions to run:
+* Requires OpenGL, GLFW, NVIDIA GPU to use Compute Shaders
+* Includes visual studio or cmake build tools. There is a run script that builds and runs using cmake.
+
 ### Controls:
 * use WASD, space, and left shift to move
 * QEZC to rotate
