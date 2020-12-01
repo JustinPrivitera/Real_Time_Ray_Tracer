@@ -5,10 +5,6 @@ final project for csc 572, graduate graphics and csc 473, advanced rendering tec
 
 ![screenshot1](images/screenshot1.png)
 
-![screenshot2](images/screenshot2.png)
-
-![screenshot3](images/screenshot3.png)
-
 ![phong](images/phong.png)
 
 ![phong+reflections](images/phong+reflections.png)
