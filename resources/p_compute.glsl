@@ -4,7 +4,7 @@
 
 #define WIDTH 440
 #define HEIGHT 330
-#define AA 4
+#define AA 4 // NO AA USED
 #define RECURSION_DEPTH 20
 #define NUM_SHAPES 10
 
@@ -15,7 +15,11 @@
 #define RECTANGLE_ID 3
 // others
 
+#define PHONG_SHADOW_MIN 0.06
+
 // one shader unit per pixel
+
+layout(rgba32f, binding = 0) uniform image2D img_output;
 
 layout(local_size_x = 1, local_size_y = 1) in;
 
@@ -26,6 +30,7 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location; // ray casting vector
+	vec4 light_pos; // for point lights only
 	vec4 background; // represents the background color
 	vec4 simple_shapes[NUM_SHAPES][5]; // shape buffer
 	// sphere:
@@ -54,8 +59,6 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
-
-uniform int sizeofbuffer;
 
 float random(vec2 st) 
 {
@@ -147,41 +150,33 @@ vec3 sphere_compute_normal(vec3 pos, int shape_index)
 	return normalize(pos - simple_shapes[shape_index][0].xyz);
 }
 
-vec3 get_pt_within_unit_sphere(int aa)
+bool shadow_ray(vec3 pos)
 {
-	int first = aa * 2;
-	int second = first + 1;
-	vec2 seed1 = vec2(rand_buffer[first].x, rand_buffer[first].y);
-	vec2 seed2 = vec2(rand_buffer[first].z, rand_buffer[first].w);
-	vec2 seed3 = vec2(rand_buffer[second].x, rand_buffer[second].y);
-	vec2 seed4 = vec2(rand_buffer[second].z, rand_buffer[second].w);
+	double t;
 
-	vec2 xy = gl_GlobalInvocationID.xy;
+	vec3 light_vector = light_pos.xyz - pos;
+	vec3 l = normalize(light_vector);
+	float len = length(light_vector);
+	// float t_max = light_vector.x / l.x;
+	// new ray with p = pos and dir = l
 
-	return normalize(vec3(
-				random(seed1 + xy * seed4) * 2 - 1,
-				random(seed2 - xy * seed4) * 2 - 1,
-				random(seed3 * xy + seed4) * 2 - 1));
+	// fixes shadow issue
+	vec3 new_pos = pos + 0.01 * l;
+
+	for (int i = 0; i < int(mode.z); i ++)
+	{
+		t = eval_ray(new_pos, l, i);
+		if (t > 0.0001)
+			if (length(t * l) < len)
+				return false; // we are in shadow
+	}
+	return true;
 }
 
-// return a vec4 array: vec4 attenuation, vec4 pos + stop bit, vec4 dir + shape_ind
-void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
+vec4 phong(vec3 dir) // phong diffuse lighting
 {
-	if (depth <= 0)
-	{
-		array[0] = vec4(0);
-		array[1].w = 1; // this means stop the recursion
-		uint x = gl_GlobalInvocationID.x;
-		uint y = gl_GlobalInvocationID.y;
-		int frame = int(mode.y);
-		depth_buffer[frame][x][y].y = RECURSION_DEPTH;
-		return;
-	}
-
-	vec3 pos = array[1].xyz;
-	vec3 dir = array[2].xyz;
-	// int last_ind = int(array[2].w);
-
+	vec4 result_color;
+	// basic ray casting
 	float t = -1;
 	float res_t;
 	int ind = -1;
@@ -189,102 +184,60 @@ void ambient_occlusion_helper(inout vec4 array[3], int depth, int aa)
 	// the following math just gets the closest collision
 	for (int i = 0; i < int(mode.z); i ++)
 	{
-		res_t = eval_ray(pos, dir, i);
-		if (res_t > 0.0001)
+		res_t = eval_ray(camera_location.xyz, dir, i);
+		if (res_t > 0)
 		{
 			if (res_t < t || t < 0)
 			{
-				t = res_t;
+				t = res_t; // t is always the smallest t value so far
 				ind = i;
 			}
 		}
 	}
-
-	if (ind != -1) // we must have hit something
+	if (ind == -1) // ray intersected no geometry
 	{
-		vec4 attenuation = simple_shapes[ind][4];
-		if (simple_shapes[ind][1].w > 0.9) // is this shape emmissive?
-		{
-			array[0] = attenuation;
-			array[1].w = 1; // this means stop the recursion
-			uint x = gl_GlobalInvocationID.x;
-			uint y = gl_GlobalInvocationID.y;
-			int frame = int(mode.y);
-			depth_buffer[frame][x][y].y = RECURSION_DEPTH - depth;
-			return;
-		}
+		result_color = background;
+	}
+	else // ray intersected something; we get it's color and write out
+	{
+		// ok it'd be nice to have default code for no light sources
+		// result_color = simple_shapes[ind][2];
 
+		// I guess we assume there is a light source for now
 		vec3 curr_pos = camera_location.xyz + t * dir;
-		int id = int(attenuation.w);
+		bool lit = shadow_ray(curr_pos);
+		int shape_id = int(simple_shapes[ind][4].w);
 		vec3 normal;
-		if (id == SPHERE_ID)
+		if (shape_id == SPHERE_ID)
+		{
 			normal = sphere_compute_normal(curr_pos, ind);
-		else if (id == PLANE_ID)
+		}
+		else if (shape_id == PLANE_ID)
+		{
 			normal = simple_shapes[ind][0].xyz;
+		}
 		else
 		{
 			// other shapes... this is not yet implemented
 		}
 
-		if (aa < 0.001 && depth == RECURSION_DEPTH)
+		if (lit)
 		{
-			uint x = gl_GlobalInvocationID.x;
-			uint y = gl_GlobalInvocationID.y;
-			int frame = int(mode.y);
-			normals_buffer[frame][x][y] = vec4(normal, 1);
-			depth_buffer[frame][x][y] = vec4(t, 0, 0, 1);
+			vec3 l = normalize(light_pos.xyz - curr_pos);
+			float spec = pow(clamp(dot(normalize(l - dir), normal), 0, 1), 500);
+
+			result_color = vec4(
+				simple_shapes[ind][4].xyz
+					* clamp(dot(normal, l), PHONG_SHADOW_MIN, 1.0),
+				0);
+
+			result_color += vec4(spec * 1);
 		}
-
-		array[0] = attenuation;
-		array[1] = vec4(curr_pos, 0);
-
-		float reflect = simple_shapes[ind][3].w;
-		if (reflect > 0.999) // no reflection
-			array[2] = vec4(normalize(get_pt_within_unit_sphere(aa) + normal), 0);
-		else // reflection
+		else
 		{
-			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
-			array[2] = vec4(normalize(R + reflect * get_pt_within_unit_sphere(aa)), 0);
+			// result_color = vec4(0); // we are in shadow
+			result_color = vec4(simple_shapes[ind][4].xyz * vec3(PHONG_SHADOW_MIN), 0);
 		}
-		return;
-	}
-	else // return background color
-	{
-		uint x = gl_GlobalInvocationID.x;
-		uint y = gl_GlobalInvocationID.y;
-		int frame = int(mode.y);
-		if (aa < 0.001 && depth == RECURSION_DEPTH)
-		{
-			normals_buffer[frame][x][y] = vec4(0);
-			depth_buffer[frame][x][y] = vec4(0);
-		}
-
-		array[0] = background;
-		array[1].w = 1; // this means stop the recursion
-
-		depth_buffer[frame][x][y].y = RECURSION_DEPTH - depth;
-		return;
-	}
-}
-
-vec4 ambient_occlusion(vec3 dir, int aa)
-{
-	vec4 result_color = vec4(1);
-	// vec4 attenuation, shape_id, vec4 pos, stop bit, vec4 dir, nothing
-	vec4 ambient_occlusion_buffer[3];
-
-	ambient_occlusion_buffer[1].xyz = camera_location.xyz;
-	ambient_occlusion_buffer[1].w = 0; // stop bit is set to 0
-	ambient_occlusion_buffer[2] = vec4(dir, 0);
-
-	int i = RECURSION_DEPTH;
-	while (i > 0)
-	{
-		ambient_occlusion_helper(ambient_occlusion_buffer, i, aa);
-		result_color = result_color * ambient_occlusion_buffer[0];
-		if (int(ambient_occlusion_buffer[1].w) == 1) // the stop bit was set
-			break;
-		i -= 1;
 	}
 	return result_color;
 }
@@ -299,43 +252,16 @@ void main()
 
 	vec4 result_color = vec4(0);
 
-	vec2 randy;
+	// ray direction calculation
+	float hp = float(x) / WIDTH;
+	float vp = float(y) / HEIGHT;
+	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
-	{
-		// ray direction calculation
-		float hp = float(x) / WIDTH;
-		float vp = float(y) / HEIGHT;
-		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
+	result_color += phong(dir);
+	depth_sum += depth_buffer[frame][x][y].y;
 
-		result_color += ambient_occlusion(dir, 0);
-		depth_sum += depth_buffer[frame][x][y].y;
-	}
-
-	// anti-aliasing
-	for (int aa = 1; aa < AA; aa ++)
-	{
-		int first = aa * 2;
-		int second = first + 1;
-		vec2 seed1 = vec2(rand_buffer[second].x, rand_buffer[first].y);
-		vec2 seed2 = vec2(rand_buffer[first].z, rand_buffer[second].w);
-		vec2 seed3 = vec2(rand_buffer[first].x, rand_buffer[second].y);
-		vec2 seed4 = vec2(rand_buffer[second].z, rand_buffer[first].w);
-
-		randy = normalize(vec2(
-				random(seed1 + xy * seed2 - xy + seed3), 
-				random(seed4 * xy - seed3 * xy * seed2))) / 6 - vec2(0.08333);
-		
-		// ray direction calculation
-		float hp = (float(x) + randy.x) / WIDTH;
-		float vp = (float(y) + randy.y) / HEIGHT;
-		vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
-
-		result_color += ambient_occlusion(dir, aa);
-		depth_sum += depth_buffer[frame][x][y].y;
-	}
-
-	result_color /= AA;
-	depth_buffer[frame][x][y] /= AA;
+	// result_color /= AA;
+	// depth_buffer[frame][x][y] /= AA;
 
 	// gamma correction
 	float gamma = 1/2.2;
@@ -343,5 +269,5 @@ void main()
 
 	// write image
 	pixels[frame][x][y] = result_color;
-	return;
+	imageStore(img_output, ivec2(x,y), result_color);
 }

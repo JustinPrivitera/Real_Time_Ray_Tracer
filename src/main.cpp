@@ -47,6 +47,7 @@ public:
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location; // ray casting vector
+	vec4 light_pos; // for point lights only
 	vec4 background; // represents the background color
 	vec4 simple_shapes[NUM_SHAPES][5]; // shape buffer
 	// sphere:
@@ -90,10 +91,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, f, q, e, sp, ls, z, c, p, one, two, three, v;
+	int w, a, s, d, f, q, e, sp, ls, z, c, p, lighting, v;
 	fake_camera()
 	{
-		w = a = s = d = f = q = e = sp = ls = z = c = p = one = two = three = v = 0;
+		w = a = s = d = f = q = e = sp = ls = z = c = p = lighting = v = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -176,7 +177,7 @@ public:
 
 	float aspect_ratio = ASPECT_RATIO;
 	int true_num_scene_objects = 5; // NUM_SHAPES;
-	// int light_movement = 0;
+	int light_movement = 0;
 
 	scene scene1 = init_scene1();
 	scene scene5 = init_scene5();
@@ -204,7 +205,7 @@ public:
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
-	GLuint ao_computeProgram, ao_postProcessingProgram, p_computeProgram;
+	GLuint aop_computeProgram, aop_postProcessingProgram, ao_computeProgram, p_computeProgram;
 
 	// Our shader program
 	std::shared_ptr<Program> prog, heightshader;
@@ -497,38 +498,36 @@ public:
 			}
 		}
 
-		// toggle scene
+		// toggle light movement
+		if (key == GLFW_KEY_L && action == GLFW_PRESS)
+		{
+			light_movement = !light_movement;
+			if (light_movement)
+				ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+		}
+
+		// toggle lighting algorithm
 		if (key == GLFW_KEY_1 && action == GLFW_PRESS)
 		{
-			mycam.one = 1;
-			mycam.two = 0;
-			mycam.three = 0;
-			// ssbo_CPUMEM.background = vec4(1);
-			ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
-			true_num_scene_objects = 5;
-			myscene = scene1;
+			mycam.lighting = 1;
 		}
 
-		// toggle scene
+		// toggle lighting algorithm
 		if (key == GLFW_KEY_2 && action == GLFW_PRESS)
 		{
-			mycam.one = 0;
-			mycam.two = 1;
-			mycam.three = 0;
-			ssbo_CPUMEM.background = vec4(0);
-			true_num_scene_objects = 3;
-			myscene = scene5;
+			mycam.lighting = 2;
 		}
 
-		// toggle scene
+		// toggle lighting algorithm
 		if (key == GLFW_KEY_3 && action == GLFW_PRESS)
 		{
-			mycam.one = 0;
-			mycam.two = 0;
-			mycam.three = 1;
-			ssbo_CPUMEM.background = vec4(0);
-			true_num_scene_objects = 6;
-			myscene = scene6;
+			mycam.lighting = 3;
+		}
+
+		// toggle lighting algorithm
+		if (key == GLFW_KEY_4 && action == GLFW_PRESS)
+		{
+			mycam.lighting = 4;
 		}
 
 		// toggle fullscreen aspect ratio
@@ -562,91 +561,94 @@ public:
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
 	}
-        void initGeom()
-        {
-            string resourceDirectory = "../resources";
 
-            // screen plane
-            glGenVertexArrays(1, &VertexArrayIDScreen);
-            glBindVertexArray(VertexArrayIDScreen);
-            // generate vertex buffer to hand off to OGL
-            glGenBuffers(1, &VertexBufferIDScreen);
-            // set the current state to focus on our vertex buffer
-            glBindBuffer(GL_ARRAY_BUFFER, VertexBufferIDScreen);
-            vec3 vertices[6];
-            vertices[0] = vec3(-1, -1, 0);
-            vertices[1] = vec3(1, -1, 0);
-            vertices[2] = vec3(1, 1, 0);
-            vertices[3] = vec3(-1, -1, 0);
-            vertices[4] = vec3(1, 1, 0);
-            vertices[5] = vec3(-1, 1, 0);
-            // actually memcopy the data - only do this once
-            glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), vertices,
-                         GL_STATIC_DRAW);
-            // we need to set up the vertex array
-            glEnableVertexAttribArray(0);
-            // key function to get up how many elements to pull out at a time
-            // (3)
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-            // generate vertex buffer to hand off to OGL
-            glGenBuffers(1, &VertexBufferTexScreen);
-            // set the current state to focus on our vertex buffer
-            glBindBuffer(GL_ARRAY_BUFFER, VertexBufferTexScreen);
-            vec2 texscreen[6];
-            texscreen[0] = vec2(0, 0);
-            texscreen[1] = vec2(1, 0);
-            texscreen[2] = vec2(1, 1);
-            texscreen[3] = vec2(0, 0);
-            texscreen[4] = vec2(1, 1);
-            texscreen[5] = vec2(0, 1);
-            // actually memcopy the data - only do this once
-            glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec2), texscreen,
-                         GL_STATIC_DRAW);
-            // we need to set up the vertex array
-            glEnableVertexAttribArray(1);
-            // key function to get up how many elements to pull out at a time
-            // (3)
-            glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-            glBindVertexArray(0);
+    void initGeom()
+    {
+    	mycam.lighting = 1;
 
-            int width, height;
+        string resourceDirectory = "../resources";
 
-            // shader:
-            GLuint Tex1Location;
+        // screen plane
+        glGenVertexArrays(1, &VertexArrayIDScreen);
+        glBindVertexArray(VertexArrayIDScreen);
+        // generate vertex buffer to hand off to OGL
+        glGenBuffers(1, &VertexBufferIDScreen);
+        // set the current state to focus on our vertex buffer
+        glBindBuffer(GL_ARRAY_BUFFER, VertexBufferIDScreen);
+        vec3 vertices[6];
+        vertices[0] = vec3(-1, -1, 0);
+        vertices[1] = vec3(1, -1, 0);
+        vertices[2] = vec3(1, 1, 0);
+        vertices[3] = vec3(-1, -1, 0);
+        vertices[4] = vec3(1, 1, 0);
+        vertices[5] = vec3(-1, 1, 0);
+        // actually memcopy the data - only do this once
+        glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec3), vertices,
+                     GL_STATIC_DRAW);
+        // we need to set up the vertex array
+        glEnableVertexAttribArray(0);
+        // key function to get up how many elements to pull out at a time
+        // (3)
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        // generate vertex buffer to hand off to OGL
+        glGenBuffers(1, &VertexBufferTexScreen);
+        // set the current state to focus on our vertex buffer
+        glBindBuffer(GL_ARRAY_BUFFER, VertexBufferTexScreen);
+        vec2 texscreen[6];
+        texscreen[0] = vec2(0, 0);
+        texscreen[1] = vec2(1, 0);
+        texscreen[2] = vec2(1, 1);
+        texscreen[3] = vec2(0, 0);
+        texscreen[4] = vec2(1, 1);
+        texscreen[5] = vec2(0, 1);
+        // actually memcopy the data - only do this once
+        glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(vec2), texscreen,
+                     GL_STATIC_DRAW);
+        // we need to set up the vertex array
+        glEnableVertexAttribArray(1);
+        // key function to get up how many elements to pull out at a time
+        // (3)
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        glBindVertexArray(0);
 
-            Tex1Location = glGetUniformLocation(
-                prog->pid,
-                "tex");  // tex, tex2... sampler in the fragment shader
-            glUseProgram(prog->pid);
-            glUniform1i(Tex1Location, 0);
+        int width, height;
 
-            glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
-            // RGBA8 2D texture, 24 bit depth texture, 256x256
-            //-------------------------
-            // Does the GPU support current FBO configuration?
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // shader:
+        GLuint Tex1Location;
 
-            // make a texture (buffer) on the GPU to store the input image
-            glGenTextures(
-                1, &CS_tex_A);  // Generate texture and store context number
-            glActiveTexture(
-                GL_TEXTURE0);  // since we have 2 textures in this program, we
-                               // need to associate the input texture with "0"
-                               // meaning first texture
-            glBindTexture(GL_TEXTURE_2D, CS_tex_A);  // highlight input texture
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                            GL_CLAMP_TO_EDGE);  // texture sampler parameter
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                            GL_CLAMP_TO_EDGE);  // texture sampler parameter
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
-                            GL_LINEAR);  // texture sampler parameter
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                            GL_LINEAR);  // texture sampler parameter
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA,
-                         GL_FLOAT, NULL);  // copy image data to texture
-            glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE,
-                               GL_RGBA32F);  // enable texture in shader
-        }
+        Tex1Location = glGetUniformLocation(
+            prog->pid,
+            "tex");  // tex, tex2... sampler in the fragment shader
+        glUseProgram(prog->pid);
+        glUniform1i(Tex1Location, 0);
+
+        glfwGetFramebufferSize(windowManager->getHandle(), &width, &height);
+        // RGBA8 2D texture, 24 bit depth texture, 256x256
+        //-------------------------
+        // Does the GPU support current FBO configuration?
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+        // make a texture (buffer) on the GPU to store the input image
+        glGenTextures(
+            1, &CS_tex_A);  // Generate texture and store context number
+        glActiveTexture(
+            GL_TEXTURE0);  // since we have 2 textures in this program, we
+                           // need to associate the input texture with "0"
+                           // meaning first texture
+        glBindTexture(GL_TEXTURE_2D, CS_tex_A);  // highlight input texture
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
+                        GL_CLAMP_TO_EDGE);  // texture sampler parameter
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
+                        GL_CLAMP_TO_EDGE);  // texture sampler parameter
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+                        GL_LINEAR);  // texture sampler parameter
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                        GL_LINEAR);  // texture sampler parameter
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA,
+                     GL_FLOAT, NULL);  // copy image data to texture
+        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE,
+                           GL_RGBA32F);  // enable texture in shader
+    }
 
     void loadShapeBuffer()
     {
@@ -738,6 +740,7 @@ public:
 		// instead of buried in computeInitGeom
 		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
 		// ssbo_CPUMEM.background = vec4(0);
+		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
 
 		for (int i = 0; i < WIDTH; i++)
 		{
@@ -767,7 +770,7 @@ public:
 	{
 		GLSL::checkVersion();
 		//load the compute shader
-		std::string ShaderString = readFileAsString("../resources/ao_compute.glsl");
+		std::string ShaderString = readFileAsString("../resources/aop_compute.glsl");
 		const char *shader = ShaderString.c_str();
 		GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(computeShader, 1, &shader, nullptr);
@@ -778,25 +781,25 @@ public:
 		if (!rc)	//error compiling the shader file
 		{
 			GLSL::printShaderInfoLog(computeShader);
-			std::cout << "Error compiling compute shader " << std::endl;
+			std::cout << "Error compiling ambient occlusion shader " << std::endl;
 			system("pause");
 			exit(1);
 		}
 
 
-		ao_computeProgram = glCreateProgram();
-		glAttachShader(ao_computeProgram, computeShader);
-		glLinkProgram(ao_computeProgram);
-		glUseProgram(ao_computeProgram);
+		aop_computeProgram = glCreateProgram();
+		glAttachShader(aop_computeProgram, computeShader);
+		glLinkProgram(aop_computeProgram);
+		glUseProgram(aop_computeProgram);
 
 		
 		GLuint block_index;
-		block_index = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(aop_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(ao_computeProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(aop_computeProgram, block_index, ssbo_binding_point_index);
 
 
-		ShaderString = readFileAsString("../resources/ao_postprocessing.glsl");
+		ShaderString = readFileAsString("../resources/aop_postprocessing.glsl");
 		shader = ShaderString.c_str();
 		GLuint postProcessingShader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(postProcessingShader, 1, &shader, nullptr);
@@ -813,15 +816,44 @@ public:
 			exit(1);
 		}
 
-		ao_postProcessingProgram = glCreateProgram();
-		glAttachShader(ao_postProcessingProgram, postProcessingShader);
-		glLinkProgram(ao_postProcessingProgram);
-		glUseProgram(ao_postProcessingProgram);
+		aop_postProcessingProgram = glCreateProgram();
+		glAttachShader(aop_postProcessingProgram, postProcessingShader);
+		glLinkProgram(aop_postProcessingProgram);
+		glUseProgram(aop_postProcessingProgram);
 
 		GLuint block_index2;
-		block_index2 = glGetProgramResourceIndex(ao_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index2 = glGetProgramResourceIndex(aop_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(ao_postProcessingProgram, block_index2, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(aop_postProcessingProgram, block_index2, ssbo_binding_point_index);
+
+		///////////////////////AO w/o PP SHADER//////////////////////////
+
+		ShaderString = readFileAsString("../resources/ao_compute.glsl");
+		shader = ShaderString.c_str();
+		GLuint raw_ao_shader = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(raw_ao_shader, 1, &shader, nullptr);
+
+
+		GLint rcao;
+		CHECKED_GL_CALL(glCompileShader(raw_ao_shader));
+		CHECKED_GL_CALL(glGetShaderiv(raw_ao_shader, GL_COMPILE_STATUS, &rcao));
+		if (!rcao)	//error compiling the shader file
+		{
+			GLSL::printShaderInfoLog(raw_ao_shader);
+			std::cout << "Error compiling raw ambient occlusion shader " << std::endl;
+			system("pause");
+			exit(1);
+		}
+
+		ao_computeProgram = glCreateProgram();
+		glAttachShader(ao_computeProgram, raw_ao_shader);
+		glLinkProgram(ao_computeProgram);
+		glUseProgram(ao_computeProgram);
+
+		GLuint block_index3;
+		block_index3 = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(ao_computeProgram, block_index3, ssbo_binding_point_index);
 
 		///////////////////////PHONG SHADER//////////////////////////
 
@@ -837,7 +869,7 @@ public:
 		if (!rcph)	//error compiling the shader file
 		{
 			GLSL::printShaderInfoLog(phong_shader);
-			std::cout << "Error compiling post processing shader " << std::endl;
+			std::cout << "Error compiling phong shader " << std::endl;
 			system("pause");
 			exit(1);
 		}
@@ -847,8 +879,8 @@ public:
 		glLinkProgram(p_computeProgram);
 		glUseProgram(p_computeProgram);
 
-		GLuint block_index3;
-		block_index3 = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint block_index4;
+		block_index4 = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
 		glShaderStorageBlockBinding(p_computeProgram, block_index3, ssbo_binding_point_index);
 	}
@@ -856,11 +888,26 @@ public:
 	void compute()
 	{
 		static int frame_num = 0;
-		frame_num = compute_ambient_occlusion(frame_num);
+		if (mycam.lighting == 1)
+			frame_num = compute_ambient_occlusion_post(frame_num);
+		else if (mycam.lighting == 2)
+			frame_num = compute_ambient_occlusion(frame_num);
+		else if (mycam.lighting == 3)
+			frame_num = compute_phong(frame_num);
+		else
+			cerr << "not yet implemented" << endl;
 	}
 
 	int compute_phong(int frame_num)
 	{
+		if (light_movement)
+		{
+			ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
+			if (ssbo_CPUMEM.light_pos.x > 50)
+				ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
+		}
+		else
+			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.mode.y = frame_num;
@@ -938,13 +985,60 @@ public:
 		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+		
+		//copy data back to CPU MEM
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		siz = sizeof(ssbo_data);
+		memcpy(&ssbo_CPUMEM,p, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+		return (frame_num + 1) % NUM_FRAMES;
+	}
+
+	int compute_ambient_occlusion_post(int frame_num)
+	{
+		// TODO use ssbo versions of data so no need to copy
+		// copy updated values over... in the future maybe just use the ssbo versions everywhere
+		ssbo_CPUMEM.mode.y = frame_num;
+		ssbo_CPUMEM.mode.z = true_num_scene_objects;
+		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
+		ssbo_CPUMEM.vertical = vec4(vertical, 0);
+		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
+		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
+
+		for (int i = 0; i < AA * 2; i ++)
+		{
+			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
+		}
+
+		GLuint block_index = 1;
+		block_index = glGetProgramResourceIndex(aop_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(aop_computeProgram, block_index, ssbo_binding_point_index);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glUseProgram(aop_computeProgram);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		int siz = sizeof(ssbo_data);
+		memcpy(p, &ssbo_CPUMEM, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);				
+
+		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
 		GLuint block_index2;
 		block_index2 = 1;
-		block_index2 = glGetProgramResourceIndex(ao_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index2 = glGetProgramResourceIndex(aop_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index2 = 0;
-		glShaderStorageBlockBinding(ao_postProcessingProgram, block_index2, ssbo_binding_point_index2);
+		glShaderStorageBlockBinding(aop_postProcessingProgram, block_index2, ssbo_binding_point_index2);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(ao_postProcessingProgram);
+		glUseProgram(aop_postProcessingProgram);
 
 		glDispatchCompute((GLuint)WIDTH, (GLuint)HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);

@@ -23,6 +23,7 @@ layout(std430, binding = 0) volatile buffer shader_data
 	vec4 vertical; // ray casting vector
 	vec4 llc_minus_campos; // ray casting vector
 	vec4 camera_location; // ray casting vector
+	vec4 light_pos; // for point lights only
 	vec4 background; // represents the background color
 	vec4 simple_shapes[NUM_SHAPES][5]; // shape buffer
 	// sphere:
@@ -205,5 +206,4 @@ void main()
 
 	// write image
 	imageStore(img_output, ivec2(x,y), color);
-	return;
 }

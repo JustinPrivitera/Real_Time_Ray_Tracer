@@ -17,8 +17,6 @@
 
 // one shader unit per pixel
 
-layout(rgba32f, binding = 0) uniform image2D img_output;
-
 layout(local_size_x = 1, local_size_y = 1) in;
 
 layout (std430, binding = 0) volatile buffer shader_data
@@ -346,5 +344,5 @@ void main()
 
 	// write image
 	pixels[frame][x][y] = result_color;
-	imageStore(img_output, ivec2(x,y), result_color);
+	return;
 }
