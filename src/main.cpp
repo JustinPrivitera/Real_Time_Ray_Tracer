@@ -90,10 +90,10 @@ class fake_camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d, f, q, e, sp, ls, z, c, p, one, two, three;
+	int w, a, s, d, f, q, e, sp, ls, z, c, p, one, two, three, v;
 	fake_camera()
 	{
-		w = a = s = d = f = q = e = sp = ls = z = c = p = one = two = three = 0;
+		w = a = s = d = f = q = e = sp = ls = z = c = p = one = two = three = v = 0;
 		pos = rot = glm::vec3(0, 0, 0);
 	}
 	glm::mat4 process(double ftime)
@@ -204,7 +204,7 @@ public:
 
 	ssbo_data ssbo_CPUMEM;
 	GLuint ssbo_GPU_id;
-	GLuint computeProgram, postProcessingProgram;
+	GLuint ao_computeProgram, ao_postProcessingProgram, p_computeProgram;
 
 	// Our shader program
 	std::shared_ptr<Program> prog, heightshader;
@@ -467,6 +467,34 @@ public:
 		if (key == GLFW_KEY_C && action == GLFW_RELEASE)
 		{
 			mycam.c = 0;
+		}
+
+		// toggle scene
+		if (key == GLFW_KEY_V && action == GLFW_PRESS)
+		{
+			mycam.v = (mycam.v + 1) % 3;
+			if (mycam.v == 0)
+			{
+				ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
+				true_num_scene_objects = 5;
+				myscene = scene1;
+			}
+			else if (mycam.v == 1)
+			{
+				ssbo_CPUMEM.background = vec4(0);
+				true_num_scene_objects = 3;
+				myscene = scene5;
+			}
+			else if (mycam.v == 2)
+			{
+				ssbo_CPUMEM.background = vec4(0);
+				true_num_scene_objects = 6;
+				myscene = scene6;
+			}
+			else
+			{
+				cerr << "incorrect scene specified" << endl;
+			}
 		}
 
 		// toggle scene
@@ -739,7 +767,7 @@ public:
 	{
 		GLSL::checkVersion();
 		//load the compute shader
-		std::string ShaderString = readFileAsString("../resources/compute.glsl");
+		std::string ShaderString = readFileAsString("../resources/ao_compute.glsl");
 		const char *shader = ShaderString.c_str();
 		GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(computeShader, 1, &shader, nullptr);
@@ -756,19 +784,19 @@ public:
 		}
 
 
-		computeProgram = glCreateProgram();
-		glAttachShader(computeProgram, computeShader);
-		glLinkProgram(computeProgram);
-		glUseProgram(computeProgram);
+		ao_computeProgram = glCreateProgram();
+		glAttachShader(ao_computeProgram, computeShader);
+		glLinkProgram(ao_computeProgram);
+		glUseProgram(ao_computeProgram);
 
 		
 		GLuint block_index;
-		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(ao_computeProgram, block_index, ssbo_binding_point_index);
 
 
-		ShaderString = readFileAsString("../resources/postprocessing.glsl");
+		ShaderString = readFileAsString("../resources/ao_postprocessing.glsl");
 		shader = ShaderString.c_str();
 		GLuint postProcessingShader = glCreateShader(GL_COMPUTE_SHADER);
 		glShaderSource(postProcessingShader, 1, &shader, nullptr);
@@ -785,20 +813,54 @@ public:
 			exit(1);
 		}
 
-		postProcessingProgram = glCreateProgram();
-		glAttachShader(postProcessingProgram, postProcessingShader);
-		glLinkProgram(postProcessingProgram);
-		glUseProgram(postProcessingProgram);
+		ao_postProcessingProgram = glCreateProgram();
+		glAttachShader(ao_postProcessingProgram, postProcessingShader);
+		glLinkProgram(ao_postProcessingProgram);
+		glUseProgram(ao_postProcessingProgram);
 
 		GLuint block_index2;
-		block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index2 = glGetProgramResourceIndex(ao_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(ao_postProcessingProgram, block_index2, ssbo_binding_point_index);
+
+		///////////////////////PHONG SHADER//////////////////////////
+
+		ShaderString = readFileAsString("../resources/p_compute.glsl");
+		shader = ShaderString.c_str();
+		GLuint phong_shader = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(phong_shader, 1, &shader, nullptr);
+
+
+		GLint rcph;
+		CHECKED_GL_CALL(glCompileShader(phong_shader));
+		CHECKED_GL_CALL(glGetShaderiv(phong_shader, GL_COMPILE_STATUS, &rcph));
+		if (!rcph)	//error compiling the shader file
+		{
+			GLSL::printShaderInfoLog(phong_shader);
+			std::cout << "Error compiling post processing shader " << std::endl;
+			system("pause");
+			exit(1);
+		}
+
+		p_computeProgram = glCreateProgram();
+		glAttachShader(p_computeProgram, phong_shader);
+		glLinkProgram(p_computeProgram);
+		glUseProgram(p_computeProgram);
+
+		GLuint block_index3;
+		block_index3 = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(p_computeProgram, block_index3, ssbo_binding_point_index);
 	}
 
 	void compute()
 	{
 		static int frame_num = 0;
+		frame_num = compute_ambient_occlusion(frame_num);
+	}
+
+	int compute_phong(int frame_num)
+	{
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.mode.y = frame_num;
@@ -814,11 +876,58 @@ public:
 		}
 
 		GLuint block_index = 1;
-		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(p_computeProgram, block_index, ssbo_binding_point_index);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(computeProgram);
+		glUseProgram(p_computeProgram);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		int siz = sizeof(ssbo_data);
+		memcpy(p, &ssbo_CPUMEM, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);				
+
+		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+		
+		//copy data back to CPU MEM
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
+		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
+		siz = sizeof(ssbo_data);
+		memcpy(&ssbo_CPUMEM,p, siz);
+		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+		return (frame_num + 1) % NUM_FRAMES;
+	}
+
+	int compute_ambient_occlusion(int frame_num)
+	{
+		// TODO use ssbo versions of data so no need to copy
+		// copy updated values over... in the future maybe just use the ssbo versions everywhere
+		ssbo_CPUMEM.mode.y = frame_num;
+		ssbo_CPUMEM.mode.z = true_num_scene_objects;
+		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
+		ssbo_CPUMEM.vertical = vec4(vertical, 0);
+		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
+		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
+
+		for (int i = 0; i < AA * 2; i ++)
+		{
+			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
+		}
+
+		GLuint block_index = 1;
+		block_index = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(ao_computeProgram, block_index, ssbo_binding_point_index);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
+		glUseProgram(ao_computeProgram);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
@@ -831,11 +940,11 @@ public:
 
 		GLuint block_index2;
 		block_index2 = 1;
-		block_index2 = glGetProgramResourceIndex(postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index2 = glGetProgramResourceIndex(ao_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index2 = 0;
-		glShaderStorageBlockBinding(postProcessingProgram, block_index2, ssbo_binding_point_index2);
+		glShaderStorageBlockBinding(ao_postProcessingProgram, block_index2, ssbo_binding_point_index2);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(postProcessingProgram);
+		glUseProgram(ao_postProcessingProgram);
 
 		glDispatchCompute((GLuint)WIDTH, (GLuint)HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -852,7 +961,7 @@ public:
 		memcpy(&ssbo_CPUMEM,p, siz);
 		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-		frame_num = (frame_num + 1) % NUM_FRAMES;
+		return (frame_num + 1) % NUM_FRAMES;
 	}
 
 	//General OGL initialization - set OGL state here
