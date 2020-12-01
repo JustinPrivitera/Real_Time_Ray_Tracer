@@ -1,6 +1,8 @@
 # final_project_csc572
 final project for csc 572, graduate graphics and csc 473, advanced rendering techniques
 
+Kevin Kellar, Noah Stapp, Justin Privitera
+
 ## Real Time Ray Tracer using Compute Shaders and OpenGL
 
 ![screenshot1](images/screenshot1.png)
