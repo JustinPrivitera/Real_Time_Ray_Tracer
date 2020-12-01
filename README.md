@@ -22,6 +22,7 @@ Kevin Kellar, Noah Stapp, Justin Privitera
 * QEZC to rotate
 * F to toggle aspect ratio
 * V to toggle the scene
+* L to toggle light movement
 * 1, 2, 3, and 4 to toggle the lighting algorithm
 
 ### Key Features:
