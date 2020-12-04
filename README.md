@@ -12,7 +12,7 @@ Kevin Kellar, Noah Stapp, Justin Privitera
 
 ### Instructions to run:
 * Requires OpenGL, GLFW, NVIDIA GPU to use Compute Shaders
-* Includes visual studio or cmake build tools. There is a run script that builds and runs using cmake.
+* Includes visual studio and cmake build tools. There is a run script (run.sh) that builds and runs using cmake.
 
 ### Controls:
 * use WASD, space, and left shift to move
