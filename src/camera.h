@@ -11,10 +11,10 @@ class camera
 {
 public:
 	camera(vec3 loc, vec3 u, vec3 look) : location(loc), up(u), look_towards(look) {
-		w = a = s = d = f = q = e = sp = ls = z = c = lighting = v = 0;
+		w = a = s = d = f = q = e = sp = ls = z = c = lighting = light_movement = v = 0;
 	} 
 	camera() : location(vec3()), up(vec3()), look_towards(vec3()) {
-		w = a = s = d = f = q = e = sp = ls = z = c = lighting = v = 0;
+		w = a = s = d = f = q = e = sp = ls = z = c = lighting = light_movement = v = 0;
 	} // default constructor
 
 public:
@@ -22,5 +22,5 @@ public:
 	vec3 up;
 	vec3 look_towards;
 	// for keyboard input
-	int w, a, s, d, f, q, e, sp, ls, z, c, lighting, v;
+	int w, a, s, d, f, q, e, sp, ls, z, c, lighting, light_movement, v;
 };

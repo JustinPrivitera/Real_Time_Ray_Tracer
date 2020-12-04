@@ -42,7 +42,9 @@ using namespace glm;
 
 // background colors
 #define SKY vec4(13/255.0, 153/255.0, 219/255.0, 0);
-#define BLACK vec4(0); 
+#define BLACK vec4(0);
+
+#define DEFAULT_LIGHT_POS vec4(-4, 10, 20, 0);
 
 class ssbo_data
 {
@@ -137,7 +139,6 @@ public:
 
 	float aspect_ratio = ASPECT_RATIO;
 	int true_num_scene_objects = 5; // NUM_SHAPES;
-	int light_movement = 0;
 
 	scene scene1 = init_scene1();
 	scene scene5 = init_scene5();
@@ -163,13 +164,12 @@ public:
 	// Our shader program
 	std::shared_ptr<Program> prog, heightshader;
 	// Contains vertex information for OpenGL
-	GLuint VertexArrayID, VertexArrayIDScreen;
+	GLuint VertexArrayIDScreen;
 
-	GLuint VertexBufferID, VertexBufferTexScreen, VertexBufferIDScreen,VertexNormDBox, VertexTexBox, IndexBufferIDBox, InstanceBuffer;
+	GLuint VertexBufferTexScreen, VertexBufferIDScreen;
 
 	//texture data
 	GLuint tex;
-	int tex_w, tex_h;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -296,8 +296,8 @@ public:
 		// toggle light movement
 		if (key == GLFW_KEY_L && action == GLFW_PRESS)
 		{
-			light_movement = !light_movement;
-			if (light_movement)
+			mycam.light_movement = !mycam.light_movement;
+			if (mycam.light_movement)
 				ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
 		}
 
@@ -597,38 +597,47 @@ public:
 			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
 	}
 
-	void compute()
+	void moving_light()
 	{
-		static int frame_num = 0;
-		if (mycam.lighting == 1)
-		{
-			fill_rand_buffer();
-			frame_num = compute_two_shaders(frame_num, aop_computeProgram, aop_postProcessingProgram);
-		}
-		else if (mycam.lighting == 2)
-		{
-			fill_rand_buffer();
-			frame_num = compute_one_shader(frame_num, ao_computeProgram);
-		}
-		else if (mycam.lighting == 3)
-			frame_num = compute_one_shader(frame_num, p_computeProgram);
-		else if (mycam.lighting == 4)
-			frame_num = compute_one_shader(frame_num, h_computeProgram);
-		else
-			cerr << "not yet implemented" << endl;
-	}
-
-	int compute_one_shader(int frame_num, GLuint computeProgram)
-	{
-		if (light_movement)
+		if (mycam.light_movement)
 		{
 			ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
 			if (ssbo_CPUMEM.light_pos.x > 50)
 				ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
 		}
 		else
-			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
+			ssbo_CPUMEM.light_pos = DEFAULT_LIGHT_POS;
+	}
 
+	void compute()
+	{
+		static int frame_num = 0;
+		if (mycam.lighting == 1) // AO w/ PP
+		{
+			fill_rand_buffer();
+			frame_num = compute_two_shaders(frame_num, aop_computeProgram, aop_postProcessingProgram);
+		}
+		else if (mycam.lighting == 2) // AO
+		{
+			fill_rand_buffer();
+			frame_num = compute_one_shader(frame_num, ao_computeProgram);
+		}
+		else if (mycam.lighting == 3) // PHONG
+		{
+			moving_light();
+			frame_num = compute_one_shader(frame_num, p_computeProgram);
+		}
+		else if (mycam.lighting == 4) // PHONG W/ REFLECTIONS
+		{
+			moving_light();
+			frame_num = compute_one_shader(frame_num, h_computeProgram);
+		}
+		else
+			cerr << "not yet implemented" << endl;
+	}
+
+	int compute_one_shader(int frame_num, GLuint computeProgram)
+	{
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.mode.y = frame_num;
