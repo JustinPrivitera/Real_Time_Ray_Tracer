@@ -163,7 +163,7 @@ public:
 	GLuint aop_computeProgram, aop_postProcessingProgram, ao_computeProgram, p_computeProgram, h_computeProgram;
 
 	// Our shader program
-	std::shared_ptr<Program> prog, heightshader;
+	std::shared_ptr<Program> prog;
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayIDScreen;
 
@@ -695,21 +695,6 @@ public:
 		prog->addAttribute("vertPos");
 		prog->addAttribute("vertNor");
 		prog->addAttribute("vertTex");
-
-		// Initialize the GLSL program.
-		heightshader = std::make_shared<Program>();
-		heightshader->setVerbose(true);
-		heightshader->setShaderNames(resourceDirectory + "/height_vertex.glsl", resourceDirectory + "/height_frag.glsl");
-		if (!heightshader->init())
-		{
-			std::cerr << "One or more shaders failed to compile" << std::endl;
-			exit(1);
-		}
-		heightshader->addUniform("P");
-		heightshader->addUniform("V");
-		heightshader->addUniform("M");
-		heightshader->addAttribute("vertPos");
-		heightshader->addAttribute("vertTex");
 	}
 
 	void update_camera(double frametime) {
