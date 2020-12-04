@@ -2,6 +2,8 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
+// AMBIENT OCCLUSION SHADER
+
 #define WIDTH 440
 #define HEIGHT 330
 #define AA 4
@@ -58,8 +60,6 @@ layout (std430, binding = 0) volatile buffer shader_data
 	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
 
-uniform int sizeofbuffer;
-
 float random(vec2 st) 
 {
 	return fract(
@@ -84,13 +84,9 @@ float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 	float del = dot_of_stuff * dot_of_stuff - dot(pos_minus_center, pos_minus_center) + radius * radius;
 	
 	if (del < 0)
-	{
 		return -1;
-	}
 	else if (del == 0)
-	{
 		return -1 * dot_of_stuff; // hmmm i wonder why?
-	}
 	else // del > 0
 	{
 		float t1, t2, intermediate;
@@ -100,18 +96,12 @@ float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 		if (t2 < 0)
 		{
 			if (t1 < 0)
-			{
 				return -1;
-			}
 			else
-			{
 				return t1;
-			}
 		}
 		else
-		{
 			return t2;
-		}
 	}
 	return -1;
 }

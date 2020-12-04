@@ -44,7 +44,7 @@ using namespace glm;
 #define SKY vec4(13/255.0, 153/255.0, 219/255.0, 0);
 #define BLACK vec4(0);
 
-#define DEFAULT_LIGHT_POS vec4(-4, 10, 20, 0);
+#define DEFAULT_LIGHT_POS vec4(-12, 8, 7, 0);
 
 class ssbo_data
 {
@@ -138,13 +138,14 @@ class Application : public EventCallbacks
 public:
 
 	float aspect_ratio = ASPECT_RATIO;
-	int true_num_scene_objects = 5; // NUM_SHAPES;
 
 	scene scene1 = init_scene1();
 	scene scene5 = init_scene5();
 	scene scene6 = init_scene6();
 
 	scene myscene = scene1;
+
+	int true_num_scene_objects = myscene.shapes.size(); // NUM_SHAPES;
 
 	// copies of the SSBO data since these values will change each frame
 	vec3 w;
@@ -258,7 +259,7 @@ public:
 		{
 			mycam.light_movement = !mycam.light_movement;
 			if (mycam.light_movement)
-				ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+				ssbo_CPUMEM.light_pos = DEFAULT_LIGHT_POS;
 		}
 
 		// toggle lighting algorithm
@@ -470,14 +471,7 @@ public:
 	void computeInitGeom()
 	{
 		ssbo_CPUMEM.background = SKY;
-		// ssbo_CPUMEM.mode = vec4(1,0,0,0);
-		// ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
-		// ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
-		// maybe there is a better place to store these important default values...
-		// instead of buried in computeInitGeom
-		
-		// ssbo_CPUMEM.background = vec4(0);
-		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
+		ssbo_CPUMEM.light_pos = DEFAULT_LIGHT_POS;
 
 		glGenBuffers(1, &ssbo_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);

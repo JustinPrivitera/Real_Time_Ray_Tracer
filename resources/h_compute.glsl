@@ -2,6 +2,8 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
+// PHONG W/ REFLECTIONS SHADER
+
 #define WIDTH 440
 #define HEIGHT 330
 #define AA 4 // NO AA USED
@@ -84,13 +86,9 @@ float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 	float del = dot_of_stuff * dot_of_stuff - dot(pos_minus_center, pos_minus_center) + radius * radius;
 	
 	if (del < 0)
-	{
 		return -1;
-	}
 	else if (del == 0)
-	{
 		return -1 * dot_of_stuff; // hmmm i wonder why?
-	}
 	else // del > 0
 	{
 		float t1, t2, intermediate;
@@ -100,18 +98,12 @@ float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 		if (t2 < 0)
 		{
 			if (t1 < 0)
-			{
 				return -1;
-			}
 			else
-			{
 				return t1;
-			}
 		}
 		else
-		{
 			return t2;
-		}
 	}
 	return -1;
 }
@@ -198,13 +190,12 @@ void hybrid_helper(inout vec4 array[3], int depth)
 
 	vec3 pos = array[1].xyz;
 	vec3 dir = array[2].xyz;
-	// int last_ind = int(array[2].w);
 
 	float t = -1;
 	float res_t;
 	int ind = -1;
 
-	// the following math just gets the closest collision
+	// the following math gets the closest collision
 	for (int i = 0; i < int(mode.z); i ++)
 	{
 		res_t = eval_ray(pos, dir, i);
@@ -241,7 +232,6 @@ void hybrid_helper(inout vec4 array[3], int depth)
 		// PHONG
 		// add shadow feeler results to color at point
 		if (lit)
-		// if (intensity < 0)
 		{
 			vec3 l = normalize(light_pos.xyz - curr_pos);
 			float spec = pow(clamp(dot(normalize(l - dir), normal), 0, 1), 500);
@@ -256,17 +246,12 @@ void hybrid_helper(inout vec4 array[3], int depth)
 			attenuation += vec4(spec * 1);
 		}
 		else // we are in shadow
-		{
-			// attenuation = attenuation * intensity * vec4(PHONG_SHADOW_MIN);
 			attenuation = attenuation * vec4(PHONG_SHADOW_MIN);
-		}
 
 		// REFLECTION
 		float reflectivity = 1 - simple_shapes[ind][3].w;
 		if (reflectivity < 0.001) // not reflection
-		{
 			array[1].w = 1; // stop recursion
-		}
 		else // reflection
 		{
 			vec3 R = normalize((dir - 2 * (dot(dir, normal) * normal))); // reflection vector
@@ -281,7 +266,6 @@ void hybrid_helper(inout vec4 array[3], int depth)
 // every ray bounce, find phong lighting at point
 // then if it is reflective, add phong lighting to a new bounce times the current reflection constant
 // otherwise, return phong lighting
-
 vec4 hybrid(vec3 dir)
 {
 	// vec4 result_color = vec4(1);
@@ -296,8 +280,8 @@ vec4 hybrid(vec3 dir)
 	float c = lighting_buffer[2].w;
 	vec4 result_color = lighting_buffer[0];
 
-	// if (lighting_buffer[1].w == 1) // the stop bit was set
-	// 	return result_color;
+	if (lighting_buffer[1].w == 1) // the stop bit was set
+		return result_color;
 
 	int i = RECURSION_DEPTH - 1;
 	while (i > 0)
@@ -327,9 +311,6 @@ void main()
 	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
 	result_color += hybrid(dir);
-
-	// result_color /= AA;
-	// depth_buffer[frame][x][y] /= AA;
 
 	// gamma correction
 	float gamma = 1/2.2;

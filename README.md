@@ -45,6 +45,7 @@ Kevin Kellar, Noah Stapp, Justin Privitera
 
 ### Notes:
 * This project originated as the final project for csc 572, graduate graphics as well as for csc 473, advanced rendering techniques. Both classes allowed students to pick an open ended project to pursue in the last few weeks of the quarter.
+* We've had considerable difficulty getting this project to run on multiple different computers; so perhaps there are some issues with the shaders that are not prevalent on the graphics cards we were able to run this on.
 * Future ideas to expand on this include:
 	+ smoothing edges
 	+ Using textures to store past frames instead of frame buffers
@@ -56,4 +57,4 @@ Kevin Kellar, Noah Stapp, Justin Privitera
 * Additionally, the following things need to be tweaked or worked on...
 	+ Post-processing
 	+ Selective copying back from the GPU once shaders are done
-
+	+ phong shaders should store normals and depth like AO shaders

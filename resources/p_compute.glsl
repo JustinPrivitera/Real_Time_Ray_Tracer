@@ -2,6 +2,8 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
+// PHONG SHADER
+
 #define WIDTH 440
 #define HEIGHT 330
 #define AA 4 // NO AA USED
@@ -84,13 +86,9 @@ float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 	float del = dot_of_stuff * dot_of_stuff - dot(pos_minus_center, pos_minus_center) + radius * radius;
 	
 	if (del < 0)
-	{
 		return -1;
-	}
 	else if (del == 0)
-	{
 		return -1 * dot_of_stuff; // hmmm i wonder why?
-	}
 	else // del > 0
 	{
 		float t1, t2, intermediate;
@@ -100,18 +98,12 @@ float sphere_eval_ray(vec3 pos, vec3 dir, int shape_index)
 		if (t2 < 0)
 		{
 			if (t1 < 0)
-			{
 				return -1;
-			}
 			else
-			{
 				return t1;
-			}
 		}
 		else
-		{
 			return t2;
-		}
 	}
 	return -1;
 }
@@ -181,7 +173,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	float res_t;
 	int ind = -1;
 
-	// the following math just gets the closest collision
+	// the following math gets the closest collision
 	for (int i = 0; i < int(mode.z); i ++)
 	{
 		res_t = eval_ray(camera_location.xyz, dir, i);
@@ -200,26 +192,15 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 	}
 	else // ray intersected something; we get it's color and write out
 	{
-		// ok it'd be nice to have default code for no light sources
-		// result_color = simple_shapes[ind][2];
-
-		// I guess we assume there is a light source for now
 		vec3 curr_pos = camera_location.xyz + t * dir;
 		bool lit = shadow_ray(curr_pos);
 		int shape_id = int(simple_shapes[ind][4].w);
 		vec3 normal;
 		if (shape_id == SPHERE_ID)
-		{
 			normal = sphere_compute_normal(curr_pos, ind);
-		}
 		else if (shape_id == PLANE_ID)
-		{
 			normal = simple_shapes[ind][0].xyz;
-		}
-		else
-		{
-			// other shapes... this is not yet implemented
-		}
+		else {} // other shapes... this is not yet implemented
 
 		if (lit)
 		{
@@ -234,10 +215,7 @@ vec4 phong(vec3 dir) // phong diffuse lighting
 			result_color += vec4(spec * 1);
 		}
 		else
-		{
-			// result_color = vec4(0); // we are in shadow
 			result_color = vec4(simple_shapes[ind][4].xyz * vec3(PHONG_SHADOW_MIN), 0);
-		}
 	}
 	return result_color;
 }
@@ -248,7 +226,6 @@ void main()
 	uint x = xy.x;
 	uint y = xy.y;
 	int frame = int(mode.y);
-	float depth_sum = 0;
 
 	vec4 result_color = vec4(0);
 
@@ -258,10 +235,6 @@ void main()
 	vec3 dir = normalize(llc_minus_campos.xyz + hp * horizontal.xyz + vp * vertical.xyz);
 
 	result_color += phong(dir);
-	depth_sum += depth_buffer[frame][x][y].y;
-
-	// result_color /= AA;
-	// depth_buffer[frame][x][y] /= AA;
 
 	// gamma correction
 	float gamma = 1/2.2;

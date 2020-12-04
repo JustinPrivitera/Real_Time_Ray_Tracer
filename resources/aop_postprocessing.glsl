@@ -2,6 +2,7 @@
 #extension GL_ARB_shader_storage_buffer_object : require
 // #extension GL_ARB_compute_shader : enable
 
+// POST PROCESSING FOR AMBIENT OCCLUSION SHADER
 
 #define WIDTH 440
 #define HEIGHT 330
@@ -52,8 +53,6 @@ layout(std430, binding = 0) volatile buffer shader_data
 	vec4 normals_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 	vec4 depth_buffer[NUM_FRAMES][WIDTH][HEIGHT];
 };
-
-uniform int sizeofbuffer;
 
 void main()
 {
@@ -202,6 +201,7 @@ void main()
 		color = (color * 0.9 + color_sum) / denominator;
 	}
 
+	// update color so future frames can use
 	pixels[new_frame][x][y] = color;
 
 	// write image
