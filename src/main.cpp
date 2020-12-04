@@ -514,7 +514,8 @@ public:
 		{
 			GLSL::printShaderInfoLog(shader);
 			std::cout << "Error compiling " + filename << std::endl;
-			system("pause");
+			if(!system("pause"))
+				exit(2);
 			exit(1);
 		}
 
@@ -811,7 +812,7 @@ int main(int argc, char **argv)
 	srand(time(0));
 
 	glfwInit();
-	GLFWwindow* window = glfwCreateWindow(32, 32, "Dummy", nullptr, nullptr);
+	GLFWwindow* window = glfwCreateWindow(32, 32, "Window2", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 	gladLoadGL();
 

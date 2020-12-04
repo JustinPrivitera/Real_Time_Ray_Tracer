@@ -119,6 +119,9 @@ void Shape::resize()
 	xExtent = maxX - minX;
 	yExtent = maxY - minY;
 	zExtent = maxZ - minZ;
+
+	maxExtent = xExtent; // initialize it just in case
+
 	if (xExtent >= yExtent && xExtent >= zExtent)
 	{
 		maxExtent = xExtent;

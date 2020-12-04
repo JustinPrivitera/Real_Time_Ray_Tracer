@@ -7,8 +7,8 @@
 
 class sphere : public shape {
 public:
-	sphere() : location(vec3()), radius(0), shape{} {}
-	sphere(vec3 loc, float rad, vec3 p) : location(loc), radius(rad), shape{p} {}
+	sphere() : shape{}, location(vec3()), radius(0) {}
+	sphere(vec3 loc, float rad, vec3 p) : shape{p}, location(loc), radius(rad) {}
 	
 	virtual vec3 get_location() const override;
 	virtual string whoami() const override;

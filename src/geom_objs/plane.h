@@ -7,11 +7,11 @@
 
 class plane : public shape {
 public:
-	plane() : normal(vec3()), dist_from_orig(0), shape{} {
+	plane() : shape{}, normal(vec3()), dist_from_orig(0) {
 		p0 = dist_from_orig * normal;
 	}
 	plane(vec3 normal, float dist_from_orig, vec3 p) : 
-	normal(normalize(normal)), dist_from_orig(dist_from_orig), shape{p} {
+	shape{p}, normal(normalize(normal)), dist_from_orig(dist_from_orig) {
 		p0 = dist_from_orig * normal;
 	}
 	
