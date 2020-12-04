@@ -174,96 +174,56 @@ public:
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
 		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		{
 			glfwSetWindowShouldClose(window, GL_TRUE);
-		}
 		
+		// camera movement
 		if (key == GLFW_KEY_W && action == GLFW_PRESS)
-		{
 			mycam.w = 1;
-		}
 		if (key == GLFW_KEY_W && action == GLFW_RELEASE)
-		{
 			mycam.w = 0;
-		}
 		if (key == GLFW_KEY_S && action == GLFW_PRESS)
-		{
 			mycam.s = 1;
-		}
 		if (key == GLFW_KEY_S && action == GLFW_RELEASE)
-		{
 			mycam.s = 0;
-		}
 		if (key == GLFW_KEY_A && action == GLFW_PRESS)
-		{
 			mycam.a = 1;
-		}
 		if (key == GLFW_KEY_A && action == GLFW_RELEASE)
-		{
 			mycam.a = 0;
-		}
 		if (key == GLFW_KEY_D && action == GLFW_PRESS)
-		{
 			mycam.d = 1;
-		}
 		if (key == GLFW_KEY_D && action == GLFW_RELEASE)
-		{
 			mycam.d = 0;
-		}
+		
 		// move up and down
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_PRESS)
-		{
 			mycam.ls = 1;
-		}
 		if (key == GLFW_KEY_LEFT_SHIFT && action == GLFW_RELEASE)
-		{
 			mycam.ls = 0;
-		}
 		if (key == GLFW_KEY_SPACE && action == GLFW_PRESS)
-		{
 			mycam.sp = 1;
-		}
 		if (key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
-		{
 			mycam.sp = 0;
-		}
-
+		
 		// camera rotation
 		if (key == GLFW_KEY_Q && action == GLFW_PRESS)
-		{
 			mycam.q = 1;
-		}
 		if (key == GLFW_KEY_Q && action == GLFW_RELEASE)
-		{
 			mycam.q = 0;
-		}
 		if (key == GLFW_KEY_E && action == GLFW_PRESS)
-		{
 			mycam.e = 1;
-		}
 		if (key == GLFW_KEY_E && action == GLFW_RELEASE)
-		{
 			mycam.e = 0;
-		}
-
-		// camera rotation
+		
+		// camera rotation up-down
 		if (key == GLFW_KEY_Z && action == GLFW_PRESS)
-		{
 			mycam.z = 1;
-		}
 		if (key == GLFW_KEY_Z && action == GLFW_RELEASE)
-		{
 			mycam.z = 0;
-		}
 		if (key == GLFW_KEY_C && action == GLFW_PRESS)
-		{
 			mycam.c = 1;
-		}
 		if (key == GLFW_KEY_C && action == GLFW_RELEASE)
-		{
 			mycam.c = 0;
-		}
-
+		
 		// toggle scene
 		if (key == GLFW_KEY_V && action == GLFW_PRESS)
 		{
@@ -303,27 +263,13 @@ public:
 
 		// toggle lighting algorithm
 		if (key == GLFW_KEY_1 && action == GLFW_PRESS)
-		{
 			mycam.lighting = 1;
-		}
-
-		// toggle lighting algorithm
 		if (key == GLFW_KEY_2 && action == GLFW_PRESS)
-		{
 			mycam.lighting = 2;
-		}
-
-		// toggle lighting algorithm
 		if (key == GLFW_KEY_3 && action == GLFW_PRESS)
-		{
 			mycam.lighting = 3;
-		}
-
-		// toggle lighting algorithm
 		if (key == GLFW_KEY_4 && action == GLFW_PRESS)
-		{
 			mycam.lighting = 4;
-		}
 
 		// toggle fullscreen aspect ratio
 		if (key == GLFW_KEY_F && action == GLFW_PRESS)
