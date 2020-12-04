@@ -14,6 +14,7 @@
 
 #include "geomObj.h"
 #include "camera.h"
+#include "scene.h"
 
 #include "WindowManager.h"
 #include "Shape.h"
@@ -27,7 +28,7 @@ using namespace glm;
 // resolution
 #define WIDTH 440
 #define HEIGHT 330
-#define AA 4
+#define AA 4 // multisample anti-aliasing
 
 // number of scene objects
 #define NUM_SHAPES 10
@@ -87,45 +88,12 @@ double get_last_elapsed_time()
 	return difference;
 }
 
-class fake_camera
-{
-public:
-	glm::vec3 pos, rot;
-	int w, a, s, d, f, q, e, sp, ls, z, c, p, lighting, v;
-	fake_camera()
-	{
-		w = a = s = d = f = q = e = sp = ls = z = c = p = lighting = v = 0;
-		pos = rot = glm::vec3(0, 0, 0);
-	}
-	glm::mat4 process(double ftime)
-	{
-		float speed = 0;
-		if (w == 1)
-		{
-			speed = 10*ftime;
-		}
-		else if (s == 1)
-		{
-			speed = -10*ftime;
-		}
-		float yangle=0;
-		if (a == 1)
-			yangle = -3*ftime;
-		else if(d==1)
-			yangle = 3*ftime;
-		rot.y += yangle;
-		glm::mat4 R = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
-		glm::vec4 dir = glm::vec4(0, 0, speed,1);
-		dir = dir*R;
-		pos += glm::vec3(dir.x, dir.y, dir.z);
-		glm::mat4 T = glm::translate(glm::mat4(1), pos);
-		return R*T;
-	}
-};
-
-// #define initpos vec3(0,0,-20);
-fake_camera mycam;
-ofstream outFile;
+// build ray trace camera
+vec3 location = vec3(0,0,14);
+vec3 up = vec3(0,1,0);
+vec3 look_towards = vec3(0,0,1);
+camera mycam = camera(location, up, look_towards);
+// end
 
 float randf()
 {
@@ -158,18 +126,6 @@ inline vec3 operator*(int Sc, const vec3 &v) {
 	return vec3(v.x * Sc, v.y * Sc, v.z * Sc);
 }
 
-class scene
-{
-public:
-	scene(vector<shape*> shapes, vector<light_source> lights) : 
-		shapes(shapes), lights(lights) {}
-	scene() : shapes(vector<shape*>()), lights(vector<light_source>()) {}
-
-public:
-	vector<shape*> shapes;
-	vector<light_source> lights;
-};
-
 class Application : public EventCallbacks
 {
 
@@ -194,13 +150,6 @@ public:
 	vec3 llc_minus_campos;
 	// end
 
-	// build ray trace camera
-	vec3 location = vec3(0,0,14);
-	vec3 up = vec3(0,1,0);
-	vec3 look_towards = vec3(0,0,1);
-	camera rt_camera = camera(location, up, look_towards);
-	// end
-
 	WindowManager * windowManager = nullptr;
 
 	ssbo_data ssbo_CPUMEM;
@@ -212,170 +161,11 @@ public:
 	// Contains vertex information for OpenGL
 	GLuint VertexArrayID, VertexArrayIDScreen;
 
-	// Data necessary to give our box to OpenGL
 	GLuint VertexBufferID, VertexBufferTexScreen, VertexBufferIDScreen,VertexNormDBox, VertexTexBox, IndexBufferIDBox, InstanceBuffer;
 
-	//framebufferstuff
-	GLuint fb, depth_fb, FBOtex;
 	//texture data
-	GLuint Texture, Texture2;
-	GLuint CS_tex_A, CS_tex_B;
-
+	GLuint tex;
 	int tex_w, tex_h;
-
-	scene init_scene1()
-	{
-		// sphere
-		vec3 center = vec3(0,-0.5,0);
-		float radius = 2;
-		vec3 color = vec3(0.8,0.2,0.5);
-		sphere* mysphere = new sphere(center,radius,color);
-		mysphere->reflectivity = 0.5;
-
-		// sphere
-		center = vec3(4,-0.5,-2);
-		radius = 3.5;
-		color = vec3(0.8,0.8,0.1);
-		sphere* mysphere2 = new sphere(center,radius,color);
-		mysphere2->reflectivity = 0.9;
-
-		// sphere
-		center = vec3(-4.5,4,-15);
-		radius = 4;
-		color = vec3(0.2,0.8,0.1);
-		sphere* mysphere3 = new sphere(center,radius,color);
-		mysphere3->reflectivity = 0.2;
-
-		// sphere
-		center = vec3(-8,-1,2);
-		radius = 1.5;
-		color = vec3(1,1,1);
-		sphere* mysphere4 = new sphere(center,radius,color);
-		mysphere4->reflectivity = 0;
-
-		// plane
-		vec3 normal = vec3(0, 1, 0);
-		float distance_from_origin = -4;
-		color = vec3(0.3,0.0,0.5);
-		plane* myplane = new plane(normal, distance_from_origin, color);
-		
-		// shapes vector
-		vector<shape*> myshapes = vector<shape*>();
-		myshapes.push_back(mysphere);
-		myshapes.push_back(mysphere2);
-		myshapes.push_back(mysphere3);
-		myshapes.push_back(mysphere4);
-		myshapes.push_back(myplane);
-
-		// light sources
-		vector<light_source> lights = vector<light_source>();
-
-		// make scene
-		scene scene1 = scene(myshapes,lights);
-		return scene1;
-	}
-
-	scene init_scene5()
-	{
-		vector<light_source> lights = vector<light_source>();
-		
-		vector<shape*> myshapes5 = vector<shape*>();
-
-		// sphere
-		vec3 center = vec3(0,18,0);
-		float radius = 10;
-		vec3 color = vec3(1.5,1.5,1.5);
-		sphere* s5sphere1 = new sphere(center,radius,color);
-		s5sphere1->emissive = true;
-
-		// // rectangle
-		// vec3 llc = vec3(4,6,4);
-		// vec3 up = vec3(-8,0,0);
-		// vec3 right = vec3(0,0,-8);
-		// color = vec3(1.5,1.5,1.5);
-		// rectangle* s5rect1 = new rectangle(llc, right, up, color);
-		// s5rect1->emissive = true;
-
-		// sphere
-		center = vec3(0,0,0);
-		radius = 2;
-		color = vec3(0.2,0.6,0.8);
-		sphere* s5sphere2 = new sphere(center,radius,color);
-		s5sphere2->reflectivity = 0.4;
-
-		// sphere
-		center = vec3(0,-35,0);
-		radius = 33;
-		color = vec3(0.8,0.6,0.2);
-		sphere* s5sphere3 = new sphere(center,radius,color);
-
-		myshapes5.push_back(s5sphere1);
-		myshapes5.push_back(s5sphere2);
-		myshapes5.push_back(s5sphere3);
-
-		// make scene
-		scene scene5 = scene(myshapes5,lights);
-
-		return scene5;
-	}
-
-	scene init_scene6()
-	{
-		vector<light_source> lights = vector<light_source>();
-		vector<shape*> myshapes6 = vector<shape*>();
-
-		// sphere
-		vec3 center = vec3(0,12,0);
-		float radius = 6;
-		vec3 color = vec3(4,4,4);
-		sphere* s6sphere1 = new sphere(center,radius,color);
-		s6sphere1->emissive = true;
-
-		// sphere
-		center = vec3(-8,0,0);
-		radius = 2;
-		color = vec3(8, 8, 16);
-		sphere* s6sphere2 = new sphere(center,radius,color);
-		s6sphere2->emissive = true;
-
-		// sphere
-		center = vec3(0,0,0);
-		radius = 2;
-		color = vec3(0.2,0.6,0.8);
-		sphere* s6sphere3 = new sphere(center,radius,color);
-		s6sphere3->reflectivity = 0.4;
-
-		// sphere
-		center = vec3(0,-35,0);
-		radius = 33;
-		color = vec3(0.8,0.6,0.2);
-		sphere* s6sphere4 = new sphere(center,radius,color);
-
-		// sphere
-		center = vec3(2,1,3);
-		radius = 0.5;
-		color = vec3(1,1,1);
-		sphere* s6sphere5 = new sphere(center,radius,color);
-		s6sphere5->reflectivity = 0.0;
-
-		// sphere
-		center = vec3(4.5, 0.2, 5);
-		radius = 2.25;
-		color = vec3(1,1,1);
-		sphere* s6sphere6 = new sphere(center,radius,color);
-		s6sphere6->reflectivity = 0.0;
-
-		myshapes6.push_back(s6sphere1);
-		myshapes6.push_back(s6sphere2);
-		myshapes6.push_back(s6sphere3);
-		myshapes6.push_back(s6sphere4);
-		myshapes6.push_back(s6sphere5);
-		myshapes6.push_back(s6sphere6);
-
-		// make scene
-		scene scene6 = scene(myshapes6,lights);
-		return scene6;
-	}
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -630,12 +420,12 @@ public:
 
         // make a texture (buffer) on the GPU to store the input image
         glGenTextures(
-            1, &CS_tex_A);  // Generate texture and store context number
+            1, &tex);  // Generate texture and store context number
         glActiveTexture(
             GL_TEXTURE0);  // since we have 2 textures in this program, we
                            // need to associate the input texture with "0"
                            // meaning first texture
-        glBindTexture(GL_TEXTURE_2D, CS_tex_A);  // highlight input texture
+        glBindTexture(GL_TEXTURE_2D, tex);  // highlight input texture
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
                         GL_CLAMP_TO_EDGE);  // texture sampler parameter
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
@@ -646,7 +436,7 @@ public:
                         GL_LINEAR);  // texture sampler parameter
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, WIDTH, HEIGHT, 0, GL_RGBA,
                      GL_FLOAT, NULL);  // copy image data to texture
-        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE,
+        glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_READ_WRITE,
                            GL_RGBA32F);  // enable texture in shader
     }
 
@@ -902,22 +692,34 @@ public:
 		glShaderStorageBlockBinding(h_computeProgram, block_index, ssbo_binding_point_index);
 	}
 
+	void fill_rand_buffer()
+	{
+		for (int i = 0; i < AA * 2; i ++)
+			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
+	}
+
 	void compute()
 	{
 		static int frame_num = 0;
 		if (mycam.lighting == 1)
-			frame_num = compute_ambient_occlusion_post(frame_num);
+		{
+			fill_rand_buffer();
+			frame_num = compute_two_shaders(frame_num, aop_computeProgram, aop_postProcessingProgram);
+		}
 		else if (mycam.lighting == 2)
-			frame_num = compute_ambient_occlusion(frame_num);
+		{
+			fill_rand_buffer();
+			frame_num = compute_one_shader(frame_num, ao_computeProgram);
+		}
 		else if (mycam.lighting == 3)
-			frame_num = compute_phong(frame_num);
+			frame_num = compute_one_shader(frame_num, p_computeProgram);
 		else if (mycam.lighting == 4)
-			frame_num = compute_hybrid(frame_num);
+			frame_num = compute_one_shader(frame_num, h_computeProgram);
 		else
 			cerr << "not yet implemented" << endl;
 	}
 
-	int compute_hybrid(int frame_num)
+	int compute_one_shader(int frame_num, GLuint computeProgram)
 	{
 		if (light_movement)
 		{
@@ -927,6 +729,7 @@ public:
 		}
 		else
 			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
+
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.mode.y = frame_num;
@@ -934,19 +737,14 @@ public:
 		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
 		ssbo_CPUMEM.vertical = vec4(vertical, 0);
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
-		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
-
-		// for (int i = 0; i < AA * 2; i ++)
-		// {
-		// 	ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
-		// }
+		ssbo_CPUMEM.camera_location = vec4(mycam.location, 0);
 
 		GLuint block_index = 1;
-		block_index = glGetProgramResourceIndex(h_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(h_computeProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(h_computeProgram);
+		glUseProgram(computeProgram);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
@@ -957,7 +755,7 @@ public:
 		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+        glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 		
@@ -972,16 +770,8 @@ public:
 		return (frame_num + 1) % NUM_FRAMES;
 	}
 
-	int compute_phong(int frame_num)
+	int compute_two_shaders(int frame_num, GLuint computeProgram1, GLuint computeProgram2)
 	{
-		if (light_movement)
-		{
-			ssbo_CPUMEM.light_pos = ssbo_CPUMEM.light_pos + vec4(0.1);
-			if (ssbo_CPUMEM.light_pos.x > 50)
-				ssbo_CPUMEM.light_pos = vec4(-50, 20, -50, 0);
-		}
-		else
-			ssbo_CPUMEM.light_pos = vec4(-4, 10, 20, 0);
 		// TODO use ssbo versions of data so no need to copy
 		// copy updated values over... in the future maybe just use the ssbo versions everywhere
 		ssbo_CPUMEM.mode.y = frame_num;
@@ -989,19 +779,14 @@ public:
 		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
 		ssbo_CPUMEM.vertical = vec4(vertical, 0);
 		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
-		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
+		ssbo_CPUMEM.camera_location = vec4(mycam.location, 0);
 
-		// for (int i = 0; i < AA * 2; i ++)
-		// {
-		// 	ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
-		// }
-
-		GLuint block_index = 1;
-		block_index = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint block_index;
+		block_index = glGetProgramResourceIndex(computeProgram1, GL_SHADER_STORAGE_BLOCK, "shader_data");
 		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(p_computeProgram, block_index, ssbo_binding_point_index);
+		glShaderStorageBlockBinding(computeProgram1, block_index, ssbo_binding_point_index);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(p_computeProgram);
+		glUseProgram(computeProgram1);
 
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
 		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
@@ -1012,112 +797,16 @@ public:
 		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-		
-		//copy data back to CPU MEM
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-		siz = sizeof(ssbo_data);
-		memcpy(&ssbo_CPUMEM,p, siz);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-		return (frame_num + 1) % NUM_FRAMES;
-	}
-
-	int compute_ambient_occlusion(int frame_num)
-	{
-		// TODO use ssbo versions of data so no need to copy
-		// copy updated values over... in the future maybe just use the ssbo versions everywhere
-		ssbo_CPUMEM.mode.y = frame_num;
-		ssbo_CPUMEM.mode.z = true_num_scene_objects;
-		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
-		ssbo_CPUMEM.vertical = vec4(vertical, 0);
-		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
-		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
-
-		for (int i = 0; i < AA * 2; i ++)
-		{
-			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
-		}
-
-		GLuint block_index = 1;
-		block_index = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(ao_computeProgram, block_index, ssbo_binding_point_index);
+		block_index = glGetProgramResourceIndex(computeProgram2, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(computeProgram2, block_index, ssbo_binding_point_index);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(ao_computeProgram);
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-		int siz = sizeof(ssbo_data);
-		memcpy(p, &ssbo_CPUMEM, siz);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);				
-
-		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
-
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-		
-		//copy data back to CPU MEM
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-		p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-		siz = sizeof(ssbo_data);
-		memcpy(&ssbo_CPUMEM,p, siz);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-		return (frame_num + 1) % NUM_FRAMES;
-	}
-
-	int compute_ambient_occlusion_post(int frame_num)
-	{
-		// TODO use ssbo versions of data so no need to copy
-		// copy updated values over... in the future maybe just use the ssbo versions everywhere
-		ssbo_CPUMEM.mode.y = frame_num;
-		ssbo_CPUMEM.mode.z = true_num_scene_objects;
-		ssbo_CPUMEM.horizontal = vec4(horizontal, 0);
-		ssbo_CPUMEM.vertical = vec4(vertical, 0);
-		ssbo_CPUMEM.llc_minus_campos = vec4(llc_minus_campos, 0);
-		ssbo_CPUMEM.camera_location = vec4(rt_camera.location, 0);
-
-		for (int i = 0; i < AA * 2; i ++)
-		{
-			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
-		}
-
-		GLuint block_index = 1;
-		block_index = glGetProgramResourceIndex(aop_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(aop_computeProgram, block_index, ssbo_binding_point_index);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(aop_computeProgram);
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
-		GLvoid* p = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE);
-		int siz = sizeof(ssbo_data);
-		memcpy(p, &ssbo_CPUMEM, siz);
-		glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);				
-
-		glDispatchCompute((GLuint) WIDTH, (GLuint) HEIGHT, 1);		//start compute shader
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-
-		GLuint block_index2;
-		block_index2 = 1;
-		block_index2 = glGetProgramResourceIndex(aop_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		GLuint ssbo_binding_point_index2 = 0;
-		glShaderStorageBlockBinding(aop_postProcessingProgram, block_index2, ssbo_binding_point_index2);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo_GPU_id);
-		glUseProgram(aop_postProcessingProgram);
+		glUseProgram(computeProgram2);
 
 		glDispatchCompute((GLuint)WIDTH, (GLuint)HEIGHT, 1);		//start compute shader
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-        glBindImageTexture(0, CS_tex_A, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
+        glBindImageTexture(0, tex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 		
@@ -1148,7 +837,7 @@ public:
 		prog->setShaderNames(resourceDirectory + "/shader_vertex.glsl", resourceDirectory + "/shader_fragment.glsl");
 		if (!prog->init())
 		{
-			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
+			std::cerr << "One or more shaders failed to compile" << std::endl;
 			exit(1);
 		}
 		prog->addUniform("P");
@@ -1165,7 +854,7 @@ public:
 		heightshader->setShaderNames(resourceDirectory + "/height_vertex.glsl", resourceDirectory + "/height_frag.glsl");
 		if (!heightshader->init())
 		{
-			std::cerr << "One or more shaders failed to compile... exiting!" << std::endl;
+			std::cerr << "One or more shaders failed to compile" << std::endl;
 			exit(1);
 		}
 		heightshader->addUniform("P");
@@ -1181,20 +870,20 @@ public:
 		bool rotate = false;
 		bool rotate_up_down = false;
 		// I wonder if it would be better to store this value in the camera, and update when needed?
-		vec3 right = normalize(cross(rt_camera.up, rt_camera.look_towards));
+		vec3 right = normalize(cross(mycam.up, mycam.look_towards));
 		if (mycam.w == 1)
-			rt_camera.location -= 5.0 * rt_camera.look_towards * frametime;
+			mycam.location -= 5.0 * mycam.look_towards * frametime;
 		if (mycam.s == 1)
-			rt_camera.location += 5.0 * rt_camera.look_towards * frametime;
+			mycam.location += 5.0 * mycam.look_towards * frametime;
 		if (mycam.a == 1)
-			rt_camera.location -= 5.0 * right * frametime;
+			mycam.location -= 5.0 * right * frametime;
 		if (mycam.d == 1)
-			rt_camera.location += 5.0 * right * frametime;
+			mycam.location += 5.0 * right * frametime;
 
 		if (mycam.sp == 1)
-			rt_camera.location += 5.0 * rt_camera.up * frametime;
+			mycam.location += 5.0 * mycam.up * frametime;
 		if (mycam.ls == 1)
-			rt_camera.location -= 5.0 * rt_camera.up * frametime;
+			mycam.location -= 5.0 * mycam.up * frametime;
 
 		if (mycam.e == 1)
 		{
@@ -1220,20 +909,20 @@ public:
 		}
 
 		if (rotate) {
-			glm::mat4 R = glm::rotate(glm::mat4(1), rot_y, rt_camera.up);
-			glm::vec4 dir = vec4(rt_camera.look_towards, 0);
+			glm::mat4 R = glm::rotate(glm::mat4(1), rot_y, mycam.up);
+			glm::vec4 dir = vec4(mycam.look_towards, 0);
 			dir = dir * R;
-			rt_camera.look_towards = vec3(dir.x, dir.y, dir.z);
-			rt_camera.up = vec4(rt_camera.up, 0) * R;
+			mycam.look_towards = vec3(dir.x, dir.y, dir.z);
+			mycam.up = vec4(mycam.up, 0) * R;
 		}
 
 		if (rotate_up_down)
 		{
 			glm::mat4 R = glm::rotate(glm::mat4(1), rot_x, right);
-			glm::vec4 dir = vec4(rt_camera.look_towards, 0);
+			glm::vec4 dir = vec4(mycam.look_towards, 0);
 			dir = dir * R;
-			rt_camera.look_towards = vec3(dir.x, dir.y, dir.z);
-			rt_camera.up = vec4(rt_camera.up, 0) * R;
+			mycam.look_towards = vec3(dir.x, dir.y, dir.z);
+			mycam.up = vec4(mycam.up, 0) * R;
 		}
 	}
 
@@ -1246,8 +935,8 @@ public:
 
 		update_camera(frametime);
 
-		w = rt_camera.look_towards;
-		u = normalize(cross(rt_camera.up, w));
+		w = mycam.look_towards;
+		u = normalize(cross(mycam.up, w));
 		v = normalize(cross(w, u));
 
 		horizontal = aspect_ratio * u;
@@ -1267,7 +956,7 @@ public:
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         prog->bind();
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, CS_tex_A);
+        glBindTexture(GL_TEXTURE_2D, tex);
 
         glBindVertexArray(VertexArrayIDScreen);
         glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -1302,15 +991,11 @@ int main(int argc, char **argv)
 	printf("max global (total) work group size x:%i y:%i z:%i\n",
 		work_grp_cnt[0], work_grp_cnt[1], work_grp_cnt[2]);
 
-	/* your main will always include a similar set up to establish your window
-		and GL context, etc. */
 	 WindowManager * windowManager = new WindowManager();
 	 windowManager->init(WIDTH, HEIGHT);
 	 windowManager->setEventCallbacks(application);
 	 application->windowManager = windowManager;
 
-	/* This is the code that will likely change program to program as you
-		may need to initialize or set up different data and state */
 	// Initialize scene.
 	application->init(resourceDir);
 	application->initGeom();
