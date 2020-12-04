@@ -522,7 +522,6 @@ public:
 		std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
 		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
 
-		// ssbo_CPUMEM.current_time = vec4(glfwGetTime());
 		ssbo_CPUMEM.mode = vec4(1,0,0,0);
 		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
 		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
@@ -559,139 +558,20 @@ public:
 	void computeInit()
 	{
 		GLSL::checkVersion();
-		GLuint block_index;
-		//load the compute shader
-		std::string ShaderString = readFileAsString("../resources/aop_compute.glsl");
-		const char *shader = ShaderString.c_str();
-		GLuint computeShader = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(computeShader, 1, &shader, nullptr);
+		// setup ambient occlusion with post processing shader
+		aop_computeProgram = prep_shader_program("aop_compute.glsl");
 
-		GLint rc;
-		CHECKED_GL_CALL(glCompileShader(computeShader));
-		CHECKED_GL_CALL(glGetShaderiv(computeShader, GL_COMPILE_STATUS, &rc));
-		if (!rc)	//error compiling the shader file
-		{
-			GLSL::printShaderInfoLog(computeShader);
-			std::cout << "Error compiling ambient occlusion shader " << std::endl;
-			system("pause");
-			exit(1);
-		}
+		// setup post processing shader for ambient occlusion
+		aop_postProcessingProgram = prep_shader_program("aop_postprocessing.glsl");
 
+		// setup ambient occlusion without post processing shader
+		ao_computeProgram = prep_shader_program("ao_compute.glsl");
 
-		aop_computeProgram = glCreateProgram();
-		glAttachShader(aop_computeProgram, computeShader);
-		glLinkProgram(aop_computeProgram);
-		glUseProgram(aop_computeProgram);
+		// setup phong shader
+		p_computeProgram = prep_shader_program("p_compute.glsl");
 
-		block_index = glGetProgramResourceIndex(aop_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		GLuint ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(aop_computeProgram, block_index, ssbo_binding_point_index);
-
-
-		ShaderString = readFileAsString("../resources/aop_postprocessing.glsl");
-		shader = ShaderString.c_str();
-		GLuint postProcessingShader = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(postProcessingShader, 1, &shader, nullptr);
-
-
-		CHECKED_GL_CALL(glCompileShader(postProcessingShader));
-		CHECKED_GL_CALL(glGetShaderiv(postProcessingShader, GL_COMPILE_STATUS, &rc));
-		if (!rc)	//error compiling the shader file
-		{
-			GLSL::printShaderInfoLog(postProcessingShader);
-			std::cout << "Error compiling post processing shader " << std::endl;
-			system("pause");
-			exit(1);
-		}
-
-		aop_postProcessingProgram = glCreateProgram();
-		glAttachShader(aop_postProcessingProgram, postProcessingShader);
-		glLinkProgram(aop_postProcessingProgram);
-		glUseProgram(aop_postProcessingProgram);
-
-		block_index = glGetProgramResourceIndex(aop_postProcessingProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(aop_postProcessingProgram, block_index, ssbo_binding_point_index);
-
-		///////////////////////AO w/o PP SHADER//////////////////////////
-
-		ShaderString = readFileAsString("../resources/ao_compute.glsl");
-		shader = ShaderString.c_str();
-		GLuint raw_ao_shader = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(raw_ao_shader, 1, &shader, nullptr);
-
-		CHECKED_GL_CALL(glCompileShader(raw_ao_shader));
-		CHECKED_GL_CALL(glGetShaderiv(raw_ao_shader, GL_COMPILE_STATUS, &rc));
-		if (!rc)	//error compiling the shader file
-		{
-			GLSL::printShaderInfoLog(raw_ao_shader);
-			std::cout << "Error compiling raw ambient occlusion shader " << std::endl;
-			system("pause");
-			exit(1);
-		}
-
-		ao_computeProgram = glCreateProgram();
-		glAttachShader(ao_computeProgram, raw_ao_shader);
-		glLinkProgram(ao_computeProgram);
-		glUseProgram(ao_computeProgram);
-
-		block_index = glGetProgramResourceIndex(ao_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(ao_computeProgram, block_index, ssbo_binding_point_index);
-
-		///////////////////////PHONG SHADER//////////////////////////
-
-		ShaderString = readFileAsString("../resources/p_compute.glsl");
-		shader = ShaderString.c_str();
-		GLuint phong_shader = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(phong_shader, 1, &shader, nullptr);
-
-		CHECKED_GL_CALL(glCompileShader(phong_shader));
-		CHECKED_GL_CALL(glGetShaderiv(phong_shader, GL_COMPILE_STATUS, &rc));
-		if (!rc)	//error compiling the shader file
-		{
-			GLSL::printShaderInfoLog(phong_shader);
-			std::cout << "Error compiling phong shader " << std::endl;
-			system("pause");
-			exit(1);
-		}
-
-		p_computeProgram = glCreateProgram();
-		glAttachShader(p_computeProgram, phong_shader);
-		glLinkProgram(p_computeProgram);
-		glUseProgram(p_computeProgram);
-
-		block_index = glGetProgramResourceIndex(p_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(p_computeProgram, block_index, ssbo_binding_point_index);
-
-		///////////////////////HYBRID SHADER//////////////////////////
-
+		// setup phong + reflections shader
 		h_computeProgram = prep_shader_program("h_compute.glsl");
-
-		// ShaderString = readFileAsString("../resources/h_compute.glsl");
-		// shader = ShaderString.c_str();
-		// GLuint hybrid_shader = glCreateShader(GL_COMPUTE_SHADER);
-		// glShaderSource(hybrid_shader, 1, &shader, nullptr);
-
-		// CHECKED_GL_CALL(glCompileShader(hybrid_shader));
-		// CHECKED_GL_CALL(glGetShaderiv(hybrid_shader, GL_COMPILE_STATUS, &rc));
-		// if (!rc)	//error compiling the shader file
-		// {
-		// 	GLSL::printShaderInfoLog(hybrid_shader);
-		// 	std::cout << "Error compiling hybrid shader " << std::endl;
-		// 	system("pause");
-		// 	exit(1);
-		// }
-
-		// h_computeProgram = glCreateProgram();
-		// glAttachShader(h_computeProgram, hybrid_shader);
-		// glLinkProgram(h_computeProgram);
-		// glUseProgram(h_computeProgram);
-
-		// block_index = glGetProgramResourceIndex(h_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		// ssbo_binding_point_index = 0;
-		// glShaderStorageBlockBinding(h_computeProgram, block_index, ssbo_binding_point_index);
 	}
 
 	GLuint prep_shader_program(string filename)
