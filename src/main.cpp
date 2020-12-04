@@ -667,29 +667,62 @@ public:
 
 		///////////////////////HYBRID SHADER//////////////////////////
 
-		ShaderString = readFileAsString("../resources/h_compute.glsl");
-		shader = ShaderString.c_str();
-		GLuint hybrid_shader = glCreateShader(GL_COMPUTE_SHADER);
-		glShaderSource(hybrid_shader, 1, &shader, nullptr);
+		h_computeProgram = prep_shader_program("h_compute.glsl");
 
-		CHECKED_GL_CALL(glCompileShader(hybrid_shader));
-		CHECKED_GL_CALL(glGetShaderiv(hybrid_shader, GL_COMPILE_STATUS, &rc));
+		// ShaderString = readFileAsString("../resources/h_compute.glsl");
+		// shader = ShaderString.c_str();
+		// GLuint hybrid_shader = glCreateShader(GL_COMPUTE_SHADER);
+		// glShaderSource(hybrid_shader, 1, &shader, nullptr);
+
+		// CHECKED_GL_CALL(glCompileShader(hybrid_shader));
+		// CHECKED_GL_CALL(glGetShaderiv(hybrid_shader, GL_COMPILE_STATUS, &rc));
+		// if (!rc)	//error compiling the shader file
+		// {
+		// 	GLSL::printShaderInfoLog(hybrid_shader);
+		// 	std::cout << "Error compiling hybrid shader " << std::endl;
+		// 	system("pause");
+		// 	exit(1);
+		// }
+
+		// h_computeProgram = glCreateProgram();
+		// glAttachShader(h_computeProgram, hybrid_shader);
+		// glLinkProgram(h_computeProgram);
+		// glUseProgram(h_computeProgram);
+
+		// block_index = glGetProgramResourceIndex(h_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		// ssbo_binding_point_index = 0;
+		// glShaderStorageBlockBinding(h_computeProgram, block_index, ssbo_binding_point_index);
+	}
+
+	GLuint prep_shader_program(string filename)
+	{
+		string ShaderString = readFileAsString("../resources/" + filename);
+		const char *shader_source = ShaderString.c_str();
+		GLuint shader = glCreateShader(GL_COMPUTE_SHADER);
+		glShaderSource(shader, 1, &shader_source, nullptr);
+
+		GLint rc;
+		CHECKED_GL_CALL(glCompileShader(shader));
+		CHECKED_GL_CALL(glGetShaderiv(shader, GL_COMPILE_STATUS, &rc));
 		if (!rc)	//error compiling the shader file
 		{
-			GLSL::printShaderInfoLog(hybrid_shader);
-			std::cout << "Error compiling hybrid shader " << std::endl;
+			GLSL::printShaderInfoLog(shader);
+			std::cout << "Error compiling " + filename << std::endl;
 			system("pause");
 			exit(1);
 		}
 
-		h_computeProgram = glCreateProgram();
-		glAttachShader(h_computeProgram, hybrid_shader);
-		glLinkProgram(h_computeProgram);
-		glUseProgram(h_computeProgram);
+		GLuint computeProgram = glCreateProgram();
+		glAttachShader(computeProgram, shader);
+		glLinkProgram(computeProgram);
+		glUseProgram(computeProgram);
 
-		block_index = glGetProgramResourceIndex(h_computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
-		ssbo_binding_point_index = 0;
-		glShaderStorageBlockBinding(h_computeProgram, block_index, ssbo_binding_point_index);
+		GLuint block_index;
+		block_index = glGetProgramResourceIndex(computeProgram, GL_SHADER_STORAGE_BLOCK, "shader_data");
+		GLuint ssbo_binding_point_index = 0;
+		glShaderStorageBlockBinding(computeProgram, block_index, ssbo_binding_point_index);
+	
+		return computeProgram;
 	}
 
 	void fill_rand_buffer()
