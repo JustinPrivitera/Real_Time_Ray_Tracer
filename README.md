@@ -11,7 +11,7 @@ Kevin Kellar, Noah Stapp, Justin Privitera
 ![ambient_occlusion+pp](images/ambient_occlusion+pp.png)
 
 ### Instructions to run:
-* Requires OpenGL, GLFW, NVIDIA GPU to use Compute Shaders
+* Requires OpenGL, GLFW, hardware that supports Compute Shaders
 * Includes visual studio and cmake build tools. There is a run script (run.sh) that builds and runs using cmake.
 
 ### Controls:
