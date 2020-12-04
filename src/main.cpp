@@ -40,6 +40,10 @@ using namespace glm;
 #define FULLSCREEN_ASPECT_RATIO 1.777777 // horizontal
 #define VERT_ASPECT_RATIO 1.0
 
+// background colors
+#define SKY vec4(13/255.0, 153/255.0, 219/255.0, 0);
+#define BLACK vec4(0); 
+
 class ssbo_data
 {
 public:
@@ -266,21 +270,22 @@ public:
 			mycam.v = (mycam.v + 1) % 3;
 			if (mycam.v == 0)
 			{
-				ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
-				true_num_scene_objects = 5;
+				ssbo_CPUMEM.background = SKY;
 				myscene = scene1;
+				true_num_scene_objects = myscene.shapes.size();
+				
 			}
 			else if (mycam.v == 1)
 			{
-				ssbo_CPUMEM.background = vec4(0);
-				true_num_scene_objects = 3;
+				ssbo_CPUMEM.background = BLACK;
 				myscene = scene5;
+				true_num_scene_objects = myscene.shapes.size();
 			}
 			else if (mycam.v == 2)
 			{
-				ssbo_CPUMEM.background = vec4(0);
-				true_num_scene_objects = 6;
+				ssbo_CPUMEM.background = BLACK;
 				myscene = scene6;
+				true_num_scene_objects = myscene.shapes.size();
 			}
 			else
 			{
@@ -518,34 +523,15 @@ public:
 
 	void computeInitGeom()
 	{
-		std::random_device rd;     // only used once to initialise (seed) engine
-		std::mt19937 rng(rd());    // random-number engine used (Mersenne-Twister in this case)
-		std::uniform_int_distribution<int> uni(0,4096); // guaranteed unbiased
-
-		ssbo_CPUMEM.mode = vec4(1,0,0,0);
-		ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
-		ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
+		ssbo_CPUMEM.background = SKY;
+		// ssbo_CPUMEM.mode = vec4(1,0,0,0);
+		// ssbo_CPUMEM.horizontal = ssbo_CPUMEM.vertical = vec4();
+		// ssbo_CPUMEM.llc_minus_campos = ssbo_CPUMEM.camera_location = vec4();
 		// maybe there is a better place to store these important default values...
 		// instead of buried in computeInitGeom
-		ssbo_CPUMEM.background = vec4(13/255.0, 153/255.0, 219/255.0, 0);
+		
 		// ssbo_CPUMEM.background = vec4(0);
 		ssbo_CPUMEM.light_pos = vec4(-12, 8, 7, 0);
-
-		for (int i = 0; i < WIDTH; i++)
-		{
-			for (int j = 0; j < HEIGHT; j++)
-			{
-				ssbo_CPUMEM.pixels[0][i][j] = vec4();
-				ssbo_CPUMEM.pixels[1][i][j] = vec4();
-			}
-		}
-
-		loadShapeBuffer();
-
-		for (int i = 0; i < AA * 2; i ++)
-		{
-			ssbo_CPUMEM.rand_buffer[i] = vec4(randf(), randf(), randf(), randf());
-		}
 
 		glGenBuffers(1, &ssbo_GPU_id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_GPU_id);
