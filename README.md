@@ -44,7 +44,7 @@ Kevin Kellar, Noah Stapp, Justin Privitera
 3. If ambient occlusion with post processing is enabled, then the post-processing compute shader blends pixels with the last several frames using Temporal and Spatial AA.
 
 ### Notes:
-* This project originated as the final project for csc 572, graduate graphics as well as for csc 473, advanced rendering techniques. Both classes allowed students to pick an open ended project to pursue in the last few weeks of the quarter.
+* This project originated as the final project for csc 572, graduate graphics. We were allowed to pick an open ended project to pursue in the last few weeks of the quarter.
 * We've had considerable difficulty getting this project to run on multiple different computers; so perhaps there are some issues with the shaders that are not prevalent on the graphics cards we were able to run this on.
 * Future ideas to expand on this include:
 	+ smoothing edges
